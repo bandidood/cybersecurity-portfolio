@@ -1,0 +1,242 @@
+# 🔐 SÉCURITÉ CRITIQUE - Fichiers à ne JAMAIS commiter
+
+# ============================================
+# CREDENTIALS & SECRETS (DANGER MAXIMUM)
+# ============================================
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa*
+authorized_keys
+passwords.txt
+secrets.yml
+secrets.json
+.env
+.env.*
+config.ini
+database.yml
+aws-credentials.json
+api-keys.conf
+ssh-keys/
+certificates/
+private-keys/
+
+# Variables d'environnement sensibles
+.envrc
+.environment
+environment.local
+
+# ============================================
+# DONNÉES SENSIBLES & PII
+# ============================================
+# Logs contenant des données personnelles
+*.log
+logs/
+evidence/logs/raw/
+evidence/sensitive/
+client-data/
+personal-info/
+userdata/
+employee-data/
+
+# Bases de données avec infos sensibles
+*.db
+*.sqlite
+*.sqlite3
+database/
+dumps/
+backups/
+
+# Rapports contenant des infos internes
+reports/internal/
+reports/confidential/
+internal-docs/
+compliance-private/
+
+# ============================================
+# OUTILS DE HACKING & EXPLOITS
+# ============================================
+# Payloads et exploits actifs
+exploits/live/
+payloads/weaponized/
+malware-samples/
+rootkits/
+backdoors/
+
+# Wordlists et dictionnaires sensibles
+wordlists/private/
+custom-wordlists/
+company-specific/
+
+# ============================================
+# ENVIRONNEMENTS DE DÉVELOPPEMENT
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Cache et temporaires
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.coverage
+.cache/
+.temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ============================================
+# VIRTUALISATION & CONTAINERS
+# ============================================
+# Images et machines virtuelles
+*.iso
+*.vmdk
+*.vdi
+*.vhd
+*.ova
+*.box
+*.qcow2
+
+# Containers avec données sensibles
+docker-compose.override.yml
+.dockerignore.local
+
+# ============================================
+# ARCHIVES ET GROS FICHIERS
+# ============================================
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tgz
+
+# ============================================
+# SPÉCIFIQUE CYBERSÉCURITÉ
+# ============================================
+# Résultats de scans avec infos sensibles
+nmap-results/
+openvas-reports/
+nessus-files/
+vulnerability-scans/raw/
+
+# Traffic captures avec données réelles
+*.pcap
+*.pcapng
+captures/live/
+network-dumps/
+
+# Forensics avec données réelles
+memory-dumps/
+disk-images/
+evidence/real/
+
+# ============================================
+# CI/CD & DÉPLOIEMENT
+# ============================================
+.github/workflows/secrets/
+.gitlab-ci-local/
+deploy-keys/
+kubeconfig
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+ansible/vault/
+
+# ============================================
+# DOCUMENTATION INTERNE
+# ============================================
+# Documentation avec infos sensibles
+INTERNAL.md
+SENSITIVE.md
+COMPANY-SPECIFIC.md
+architecture/internal/
+
+# ============================================
+# EXCEPTIONS AUTORISÉES (Commentées)
+# ============================================
+# Si nécessaire, décommenter avec PRÉCAUTION :
+# !examples/sanitized/
+# !templates/public/
+# !docs/public/
+
+# ============================================
+# LOGS DE DEBUG (DÉVELOPPEMENT LOCAL)
+# ============================================
+debug.log
+error.log
+access.log
+security.log
+audit.log
+trace.log
+
+# ============================================
+# TESTS AVEC DONNÉES SENSIBLES
+# ============================================
+test-data/private/
+fixtures/real/
+mock-data/sensitive/
+
+# ============================================
+# BACKUP ET SYNCHRONISATION
+# ============================================
+*.backup
+*.old
+*.orig
+*~
+.sync/
+OneDrive/private/
+Dropbox/sensitive/
+
+# ============================================
+# SPÉCIFIQUE OS
+# ============================================
+# Windows
+*.lnk
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# NOTES PERSONNELLES
+# ============================================
+TODO-PRIVATE.md
+NOTES-PERSONAL.md
+IDEAS-CONFIDENTIAL.md
+personal/
+private-notes/
+
+# ============================================
+# VÉRIFICATION FINALE
+# ============================================
+# Avant chaque commit, vérifier :
+# 1. Aucun credential exposé
+# 2. Logs anonymisés
+# 3. Pas d'IP ou noms réels
+# 4. Documentation publique uniquement
