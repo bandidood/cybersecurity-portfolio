@@ -1,0 +1,172 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2025-01-13T08:52:00Z",
+    "description": "Indicateurs de Compromise pour laboratoire IDS/IPS",
+    "source": "Cybersecurity Portfolio - Lab Environment"
+  },
+  "ips": [
+    "192.0.2.100",
+    "192.0.2.101",
+    "198.51.100.200",
+    "203.0.113.50",
+    "185.220.100.240",
+    "45.134.142.100",
+    "194.195.210.100"
+  ],
+  "domains": [
+    "malware.example.com",
+    "badactor.test",
+    "c2server.local",
+    "phishing-site.example",
+    "botnet-command.test",
+    "exploit-kit.local",
+    "data-exfil.example"
+  ],
+  "signatures": {
+    "ET TROJAN Zeus Banking Trojan": {
+      "severity": "critical",
+      "category": "malware",
+      "mitre_attack": ["T1055", "T1041"],
+      "description": "Détection du trojan bancaire Zeus"
+    },
+    "ET SCAN Port Scan": {
+      "severity": "medium", 
+      "category": "reconnaissance",
+      "mitre_attack": ["T1046"],
+      "description": "Détection de scan de ports"
+    },
+    "ET WEB SQL Injection Attack": {
+      "severity": "high",
+      "category": "web_attack",
+      "mitre_attack": ["T1190"],
+      "description": "Tentative d'injection SQL"
+    },
+    "ET POLICY Suspicious User Agent": {
+      "severity": "medium",
+      "category": "suspicious",
+      "mitre_attack": ["T1071"],
+      "description": "User-Agent suspect détecté"
+    }
+  },
+  "file_hashes": {
+    "md5": [
+      "d41d8cd98f00b204e9800998ecf8427e",
+      "098f6bcd4621d373cade4e832627b4f6",
+      "5d41402abc4b2a76b9719d911017c592"
+    ],
+    "sha256": [
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
+      "fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9"
+    ]
+  },
+  "urls": [
+    "http://malware.example.com/payload.exe",
+    "https://phishing-site.example/login.php",
+    "http://c2server.local/beacon",
+    "https://exploit-kit.local/landing",
+    "http://data-exfil.example/upload.php"
+  ],
+  "email_indicators": [
+    "phishing@badactor.test",
+    "spam@malware.example.com",
+    "support@phishing-site.example"
+  ],
+  "network_indicators": {
+    "suspicious_ports": [4444, 8080, 8443, 9999, 31337],
+    "malicious_user_agents": [
+      "Suspicious-Bot/1.0",
+      "Malware-Scanner",
+      "SQLMap/1.0",
+      "Nikto/2.1.6",
+      "Python-urllib/3.8"
+    ],
+    "command_control_patterns": [
+      "/beacon",
+      "/gate.php", 
+      "/panel/",
+      "/admin.php",
+      "/config.bin"
+    ]
+  },
+  "attack_patterns": {
+    "brute_force": {
+      "threshold": 10,
+      "time_window": 300,
+      "target_ports": [22, 80, 443, 3389, 1433, 3306]
+    },
+    "port_scan": {
+      "threshold": 20,
+      "time_window": 60,
+      "suspicious_port_ranges": ["1-1024", "3389", "5900-5910"]
+    },
+    "data_exfiltration": {
+      "size_threshold": 104857600,
+      "connection_threshold": 5,
+      "suspicious_protocols": ["FTP", "HTTP", "HTTPS", "DNS"]
+    },
+    "lateral_movement": {
+      "internal_protocols": ["SMB", "RDP", "WMI", "LDAP"],
+      "suspicious_commands": ["net use", "psexec", "wmic", "powershell"]
+    }
+  },
+  "geolocation_risks": {
+    "high_risk_countries": ["CN", "RU", "KP", "IR"],
+    "tor_exit_nodes": [
+      "192.0.2.100",
+      "198.51.100.200"
+    ],
+    "vpn_providers": [
+      "203.0.113.0/24",
+      "192.0.2.0/24"
+    ]
+  },
+  "threat_actors": {
+    "APT28": {
+      "aliases": ["Fancy Bear", "Sofacy"],
+      "ttps": ["T1041", "T1055", "T1086"],
+      "indicators": {
+        "domains": ["sofacy.example.com"],
+        "ips": ["203.0.113.100"],
+        "file_hashes": ["fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9"]
+      }
+    },
+    "Lazarus": {
+      "aliases": ["Hidden Cobra", "Zinc"],
+      "ttps": ["T1055", "T1083", "T1027"],
+      "indicators": {
+        "domains": ["lazarus.example.com"],
+        "ips": ["198.51.100.150"],
+        "file_hashes": ["2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae"]
+      }
+    }
+  },
+  "mitre_mapping": {
+    "T1046": {
+      "name": "Network Service Scanning",
+      "tactic": "Discovery",
+      "keywords": ["port scan", "service enumeration", "nmap"]
+    },
+    "T1055": {
+      "name": "Process Injection", 
+      "tactic": "Privilege Escalation",
+      "keywords": ["dll injection", "process hollowing", "reflective loading"]
+    },
+    "T1041": {
+      "name": "Exfiltration Over C2 Channel",
+      "tactic": "Exfiltration", 
+      "keywords": ["data exfiltration", "c2 communication", "beacon"]
+    },
+    "T1190": {
+      "name": "Exploit Public-Facing Application",
+      "tactic": "Initial Access",
+      "keywords": ["web exploit", "sql injection", "xss", "rce"]
+    },
+    "T1071": {
+      "name": "Application Layer Protocol",
+      "tactic": "Command and Control",
+      "keywords": ["http", "https", "dns tunneling", "web protocol"]
+    }
+  }
+}
