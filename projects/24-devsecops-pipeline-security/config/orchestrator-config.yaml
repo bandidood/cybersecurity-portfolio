@@ -1,0 +1,474 @@
+# Configuration DevSecOps Security Orchestrator
+# Configuration complète pour l'orchestration de sécurité CI/CD
+
+# Configuration de l'orchestrateur
+orchestration:
+  # Mode par défaut d'orchestration
+  default_mode: "standard"  # fast, standard, comprehensive
+  
+  # Limite de jobs parallèles
+  max_parallel_jobs: 4
+  
+  # Timeout global pour toute l'orchestration (en secondes)
+  global_timeout: 1800  # 30 minutes
+  
+  # Arrêter rapidement en cas d'erreur critique
+  fail_fast: false
+  
+  # Continuer même si un scanner échoue
+  continue_on_error: true
+  
+  # Retry configuration
+  retry:
+    max_attempts: 3
+    delay_seconds: 10
+    backoff_multiplier: 2.0
+
+# Quality Gates - Seuils de sécurité
+quality_gates:
+  # Vulnérabilités critiques (0 = aucune tolérée)
+  critical_threshold: 0
+  
+  # Vulnérabilités high severity (max acceptées)
+  high_threshold: 5
+  
+  # Score de risque maximum acceptable (0-100)
+  risk_score_threshold: 70.0
+  
+  # Age maximum des dépendances en jours
+  dependency_age_days: 365
+  
+  # Couverture de code minimum requise (%)
+  code_coverage_min: 80.0
+  
+  # Seuil de dette technique
+  technical_debt_hours: 40.0
+  
+  # Configuration des gates par environnement
+  environments:
+    development:
+      critical_threshold: 2
+      high_threshold: 10
+      risk_score_threshold: 85.0
+    
+    staging:
+      critical_threshold: 1
+      high_threshold: 7
+      risk_score_threshold: 75.0
+    
+    production:
+      critical_threshold: 0
+      high_threshold: 3
+      risk_score_threshold: 60.0
+
+# Configuration des rapports
+reporting:
+  # Formats de rapport à générer
+  formats: 
+    - "json"
+    - "sarif"
+    - "html"
+    - "junit"
+    - "csv"
+  
+  # Répertoire de sortie des rapports
+  output_dir: "./security-reports"
+  
+  # Archiver les anciens rapports
+  archive_reports: true
+  
+  # Période de rétention (jours)
+  retention_days: 90
+  
+  # Envoi de notifications
+  send_notifications: false
+  
+  # Configuration des notifications
+  notifications:
+    slack:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channels: 
+        - "#security"
+        - "#devops"
+      mention_on_failure: true
+    
+    email:
+      smtp_server: "${SMTP_SERVER}"
+      recipients:
+        - "security@company.com"
+        - "devops@company.com"
+      send_on_failure: true
+      send_daily_summary: true
+    
+    teams:
+      webhook_url: "${TEAMS_WEBHOOK_URL}"
+
+# Configuration des scanners
+scanners:
+  # Scanner SAST (Static Application Security Testing)
+  sast:
+    enabled: true
+    timeout: 300  # 5 minutes
+    
+    # Outils SAST à utiliser
+    tools:
+      - "bandit"      # Python
+      - "semgrep"     # Multi-langage
+      - "eslint"      # JavaScript/TypeScript
+      - "sonarqube"   # Multi-langage (si disponible)
+    
+    # Patterns à exclure
+    exclude_patterns:
+      - "*/test/*"
+      - "*/tests/*"
+      - "*/node_modules/*"
+      - "*/vendor/*"
+      - "*/.git/*"
+      - "*/dist/*"
+      - "*/build/*"
+    
+    # Configuration par langage
+    languages:
+      python:
+        enabled: true
+        tools: ["bandit", "semgrep"]
+        exclude_files: ["*_test.py", "test_*.py"]
+      
+      javascript:
+        enabled: true
+        tools: ["eslint", "semgrep"]
+        exclude_files: ["*.test.js", "*.spec.js"]
+      
+      java:
+        enabled: true
+        tools: ["semgrep", "spotbugs"]
+        exclude_files: ["*Test.java"]
+    
+    # Règles personnalisées
+    custom_rules:
+      enabled: true
+      rules_path: "./custom-rules/"
+    
+    # Baseline pour comparaison
+    baseline:
+      enabled: false
+      baseline_file: "./security-baseline.json"
+
+  # Scanner de dépendances
+  dependency:
+    enabled: true
+    timeout: 180  # 3 minutes
+    
+    # Inclure les dépendances de développement
+    include_dev_dependencies: false
+    
+    # Sources de vulnérabilités
+    vulnerability_sources:
+      - "osv"         # OSV.dev
+      - "github"      # GitHub Advisory Database
+      - "snyk"        # Snyk (si token disponible)
+    
+    # Configuration par gestionnaire de packages
+    package_managers:
+      npm:
+        enabled: true
+        check_lock_files: true
+        audit_command: "npm audit"
+      
+      pip:
+        enabled: true
+        check_requirements: true
+        safety_check: true
+      
+      maven:
+        enabled: true
+        dependency_check: true
+      
+      go:
+        enabled: true
+        govulncheck: true
+    
+    # Cache des résultats
+    cache:
+      enabled: true
+      ttl_hours: 24
+    
+    # Alertes spéciales
+    alerts:
+      new_vulnerabilities: true
+      outdated_dependencies: true
+      license_violations: true
+
+  # Scanner de configuration
+  config:
+    enabled: true
+    timeout: 120  # 2 minutes
+    
+    # Frameworks de conformité à vérifier
+    compliance_frameworks:
+      - "CIS"         # CIS Benchmarks
+      - "NIST"        # NIST Cybersecurity Framework
+      - "PCI-DSS"     # Payment Card Industry
+      - "SOC2"        # Service Organization Control 2
+      - "GDPR"        # General Data Protection Regulation
+    
+    # Types de configuration à analyser
+    config_types:
+      docker:
+        enabled: true
+        check_privileged: true
+        check_root_user: true
+        check_secrets: true
+      
+      kubernetes:
+        enabled: true
+        check_rbac: true
+        check_network_policies: true
+        check_pod_security: true
+      
+      terraform:
+        enabled: true
+        check_aws_security: true
+        check_encryption: true
+        check_public_access: true
+      
+      ansible:
+        enabled: true
+        check_sudo_usage: true
+        check_ssh_keys: true
+      
+      ci_cd:
+        enabled: true
+        check_secrets_exposure: true
+        check_permissions: true
+    
+    # Règles personnalisées
+    custom_rules:
+      enabled: true
+      rules_directory: "./config-rules/"
+
+  # Scanner de secrets (à implémenter)
+  secrets:
+    enabled: false
+    timeout: 60
+    
+    tools:
+      - "gitleaks"
+      - "truffleHog"
+      - "detect-secrets"
+    
+    patterns:
+      - api_keys
+      - passwords
+      - private_keys
+      - tokens
+      - certificates
+
+  # Scanner de conteneurs (à implémenter)
+  container:
+    enabled: false
+    timeout: 180
+    
+    tools:
+      - "trivy"
+      - "clair"
+      - "anchore"
+    
+    scan_types:
+      - vulnerabilities
+      - misconfigurations
+      - secrets
+      - licenses
+
+# Configuration par environnement
+environments:
+  development:
+    orchestration:
+      default_mode: "fast"
+      max_parallel_jobs: 2
+    
+    quality_gates:
+      critical_threshold: 5
+      high_threshold: 15
+    
+    scanners:
+      sast:
+        timeout: 120
+      dependency:
+        include_dev_dependencies: true
+
+  staging:
+    orchestration:
+      default_mode: "standard"
+      max_parallel_jobs: 4
+    
+    quality_gates:
+      critical_threshold: 2
+      high_threshold: 8
+    
+    scanners:
+      sast:
+        timeout: 300
+      config:
+        compliance_frameworks: ["CIS", "NIST"]
+
+  production:
+    orchestration:
+      default_mode: "comprehensive"
+      max_parallel_jobs: 6
+      fail_fast: true
+    
+    quality_gates:
+      critical_threshold: 0
+      high_threshold: 3
+      risk_score_threshold: 50.0
+    
+    scanners:
+      sast:
+        timeout: 600
+      dependency:
+        vulnerability_sources: ["osv", "github", "snyk"]
+      config:
+        compliance_frameworks: ["CIS", "NIST", "PCI-DSS", "SOC2"]
+
+# Intégrations externes
+integrations:
+  # SIEM/SOAR
+  siem:
+    enabled: false
+    endpoint: "${SIEM_ENDPOINT}"
+    api_key: "${SIEM_API_KEY}"
+  
+  # Bug tracking
+  jira:
+    enabled: false
+    url: "${JIRA_URL}"
+    username: "${JIRA_USERNAME}"
+    api_token: "${JIRA_API_TOKEN}"
+    project_key: "SECURITY"
+    
+    # Création automatique de tickets
+    auto_create_tickets:
+      enabled: false
+      critical_issues: true
+      high_issues: true
+  
+  # DevOps tools
+  sonarqube:
+    enabled: false
+    url: "${SONARQUBE_URL}"
+    token: "${SONARQUBE_TOKEN}"
+  
+  vault:
+    enabled: false
+    url: "${VAULT_URL}"
+    token: "${VAULT_TOKEN}"
+
+# Métriques et monitoring
+monitoring:
+  # Métriques à collecter
+  metrics:
+    enabled: true
+    collect_performance: true
+    collect_coverage: true
+    collect_trends: true
+  
+  # Export des métriques
+  exports:
+    prometheus:
+      enabled: false
+      port: 9090
+    
+    grafana:
+      enabled: false
+      dashboard_path: "./grafana-dashboard.json"
+  
+  # Alerting
+  alerts:
+    enabled: true
+    
+    # Alertes de performance
+    performance:
+      scan_duration_threshold: 600  # 10 minutes
+      memory_usage_threshold: 2048  # MB
+    
+    # Alertes de qualité
+    quality:
+      regression_threshold: 10  # % d'augmentation des vulnérabilités
+      new_critical_issues: true
+
+# Configuration de logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  
+  # Format des logs
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Sortie des logs
+  handlers:
+    console:
+      enabled: true
+      level: "INFO"
+    
+    file:
+      enabled: true
+      level: "DEBUG"
+      filename: "./logs/security-orchestrator.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+    
+    syslog:
+      enabled: false
+      address: "localhost:514"
+      facility: "user"
+
+# Configuration de sécurité du scanner lui-même
+security:
+  # Validation des entrées
+  input_validation:
+    max_file_size: 104857600  # 100MB
+    allowed_extensions: [".py", ".js", ".java", ".go", ".yaml", ".json", ".xml"]
+    sanitize_paths: true
+  
+  # Sandboxing
+  sandbox:
+    enabled: true
+    max_memory: 2048  # MB
+    max_cpu_time: 600  # secondes
+    network_access: false
+  
+  # Audit
+  audit:
+    enabled: true
+    log_all_actions: true
+    sensitive_data_masking: true
+
+# Templates de configuration
+templates:
+  # Template pour projets web
+  web_application:
+    scanners:
+      sast:
+        tools: ["semgrep", "eslint", "bandit"]
+      dependency:
+        vulnerability_sources: ["osv", "github"]
+      config:
+        compliance_frameworks: ["OWASP", "CIS"]
+  
+  # Template pour infrastructure
+  infrastructure:
+    scanners:
+      config:
+        enabled: true
+        compliance_frameworks: ["CIS", "NIST"]
+        config_types: ["terraform", "kubernetes", "docker"]
+      secrets:
+        enabled: true
+  
+  # Template pour applications mobiles
+  mobile_application:
+    scanners:
+      sast:
+        tools: ["semgrep", "mobsf"]
+      dependency:
+        include_dev_dependencies: false

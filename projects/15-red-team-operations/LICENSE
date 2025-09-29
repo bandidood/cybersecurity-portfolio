@@ -1,0 +1,249 @@
+MIT License with Special Provisions for Red Team Operations & Penetration Testing
+
+Copyright (c) 2024 Cybersecurity Portfolio Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+SPECIAL PROVISIONS FOR RED TEAM OPERATIONS & PENETRATION TESTING:
+
+1. AUTHORIZED USE ONLY
+   This red team operations and penetration testing framework is intended
+   EXCLUSIVELY for:
+   - Authorized penetration testing with written permission
+   - Educational and training purposes in controlled environments
+   - Academic security research within legal boundaries
+   - Red team exercises with explicit organizational approval
+   - Security assessment within scope of professional engagement
+   
+   Users MUST obtain proper legal authorization before conducting any
+   security testing activities using this software.
+
+2. STRICT LEGAL COMPLIANCE
+   Users must comply with all applicable laws and regulations including:
+   - Computer Fraud and Abuse Act (CFAA) and similar laws worldwide
+   - Data protection regulations (GDPR, CCPA, PIPEDA, etc.)
+   - Industry-specific compliance requirements (PCI-DSS, HIPAA, SOX)
+   - Professional ethical standards for penetration testers
+   - Local, national, and international cybersecurity laws
+   - Rules of engagement and contractual obligations
+
+3. PROHIBITED ACTIVITIES
+   This software MUST NOT be used for:
+   - Unauthorized access to computer systems or networks
+   - Malicious activities or criminal purposes
+   - Violation of privacy or data protection laws
+   - Damage to systems, data, or business operations
+   - Activities that violate terms of service or acceptable use policies
+   - Any form of cybercrime or malicious hacking
+   - Stalking, harassment, or intimidation through digital means
+
+4. PROFESSIONAL RESPONSIBILITY
+   Users acknowledge and accept full responsibility for:
+   - Obtaining proper written authorization before testing
+   - Ensuring scope compliance and staying within authorized boundaries
+   - Protecting confidential information discovered during testing
+   - Following responsible disclosure practices for vulnerabilities
+   - Maintaining professional ethical standards at all times
+   - Documenting all activities and maintaining audit trails
+   - Providing accurate and complete reporting of findings
+
+5. RULES OF ENGAGEMENT COMPLIANCE
+   All penetration testing activities must include:
+   - Signed Rules of Engagement (RoE) document
+   - Clear scope definition and boundary establishment
+   - Emergency contact procedures and escalation paths
+   - Data handling and confidentiality agreements
+   - Specific testing windows and authorized timeframes
+   - Approved testing methodologies and techniques only
+   - Regular communication with authorized points of contact
+
+6. VULNERABILITY DISCLOSURE
+   Any vulnerabilities discovered using this software must be:
+   - Reported to the system owner or authorized representative
+   - Disclosed following responsible disclosure practices
+   - Not exploited beyond demonstration of the vulnerability
+   - Documented with appropriate evidence and remediation guidance
+   - Kept confidential until appropriate fixes are implemented
+   - Shared only with authorized individuals or organizations
+
+7. DATA PROTECTION AND CONFIDENTIALITY
+   Users must:
+   - Protect all data and information accessed during testing
+   - Not access, copy, or retain personal or sensitive data
+   - Implement appropriate security measures for test data
+   - Delete all test artifacts and evidence after engagement
+   - Maintain confidentiality agreements and non-disclosure terms
+   - Follow data minimization principles during testing
+   - Anonymize any data used in reports or documentation
+
+8. TRAINING AND COMPETENCY REQUIREMENTS
+   This software should only be used by individuals who:
+   - Have appropriate security training and certifications
+   - Understand legal and ethical implications of security testing
+   - Are qualified to perform penetration testing activities
+   - Have experience with security assessment methodologies
+   - Understand the tools and techniques being employed
+   - Can provide expert testimony if required in legal proceedings
+
+9. OPERATIONAL SECURITY (OPSEC)
+   Users must maintain appropriate operational security by:
+   - Using secure communications for all testing activities
+   - Protecting test infrastructure and command & control systems
+   - Avoiding attribution to prevent compromise of future operations
+   - Following established OPSEC procedures and protocols
+   - Maintaining anonymity and preventing identification
+   - Securing all testing tools and infrastructure components
+
+10. INCIDENT RESPONSE AND EMERGENCY PROCEDURES
+    In case of unintended impact or emergency situations:
+    - Immediately cease testing activities if systems are impacted
+    - Contact designated emergency contacts and stakeholders
+    - Document and report any unintended consequences
+    - Cooperate fully with incident response activities
+    - Provide complete disclosure of activities and impact
+    - Assist with remediation and recovery efforts as needed
+
+11. INSURANCE AND LIABILITY
+    Users are strongly advised to:
+    - Maintain appropriate professional liability insurance
+    - Verify insurance coverage for penetration testing activities
+    - Understand limitations and exclusions in coverage
+    - Consider additional coverage for specialized testing activities
+    - Maintain records for potential legal or insurance claims
+    - Work with qualified legal counsel for complex engagements
+
+12. PROFESSIONAL CERTIFICATIONS AND STANDARDS
+    Users should maintain relevant professional credentials such as:
+    - OSCP (Offensive Security Certified Professional)
+    - OSCE (Offensive Security Certified Expert)
+    - GPEN (GIAC Penetration Tester)
+    - CEH (Certified Ethical Hacker)
+    - CISSP (Certified Information Systems Security Professional)
+    - Industry-recognized security certifications and training
+
+13. TOOL USAGE GUIDELINES
+    When using the integrated tools and frameworks:
+    - Understand the capabilities and limitations of each tool
+    - Use tools only as intended by their original developers
+    - Comply with licensing terms of third-party components
+    - Keep tools updated with latest security patches
+    - Validate tool results through multiple verification methods
+    - Document tool versions and configurations used in testing
+
+14. REPORTING AND DOCUMENTATION
+    All testing activities must be properly documented including:
+    - Complete methodology and testing approach used
+    - Detailed findings with evidence and impact assessment
+    - Remediation recommendations and prioritization
+    - Executive summary with business risk analysis
+    - Technical details sufficient for reproduction
+    - Proof-of-concept code only where necessary for validation
+
+15. CONTINUOUS EDUCATION AND IMPROVEMENT
+    Users should commit to:
+    - Staying current with evolving security threats and techniques
+    - Participating in ongoing professional development
+    - Contributing to the security community through responsible research
+    - Sharing knowledge while maintaining client confidentiality
+    - Improving testing methodologies based on lessons learned
+    - Mentoring junior security professionals appropriately
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+ADDITIONAL DISCLAIMERS FOR RED TEAM OPERATIONS:
+
+PENETRATION TESTING DISCLAIMER:
+The authors and contributors disclaim all liability for:
+- Damage to systems or data caused by use of this software
+- Legal consequences of unauthorized or improper use
+- Violation of laws, regulations, or contractual obligations
+- Misuse of vulnerabilities discovered through testing
+- Inadequate protection of confidential information
+- Failure to comply with professional ethical standards
+
+LEGAL DISCLAIMER:
+This software does not constitute legal advice. Users must:
+- Consult with qualified legal counsel before conducting testing
+- Verify compliance with applicable laws in their jurisdiction
+- Obtain appropriate authorizations and permissions
+- Understand their legal obligations and potential liabilities
+- Assume full responsibility for their actions and decisions
+
+TECHNICAL DISCLAIMER:
+While designed following industry best practices:
+- Tools and techniques may have limitations or false positives
+- Results should be validated through independent verification
+- Effectiveness may vary based on target environments
+- Some techniques may not work against updated security controls
+- Users should understand technical limitations and compensate accordingly
+
+PROFESSIONAL DISCLAIMER:
+Use of this software does not confer:
+- Professional credentials or certifications
+- Expert witness qualification
+- Insurance or legal protection
+- Authorization to conduct security testing
+- Professional recognition or endorsement
+
+EDUCATIONAL DISCLAIMER:
+This software is provided for educational purposes with the understanding that:
+- Practical experience and training are essential for competent use
+- Theoretical knowledge alone is insufficient for professional testing
+- Users should seek proper training and mentorship
+- Certification and ongoing education are strongly recommended
+- Ethical obligations extend beyond technical capabilities
+
+EXPORT CONTROL NOTICE:
+This software may contain cryptographic software subject to export controls.
+Users are responsible for complying with all applicable export control laws
+and regulations in their jurisdiction.
+
+MODIFICATION AND DISTRIBUTION:
+Users who modify or distribute this software must:
+- Maintain all original copyright notices and disclaimers
+- Add appropriate notices for any modifications made
+- Ensure distributed versions include these special provisions
+- Not remove or modify security warnings or ethical guidelines
+- Take responsibility for the security and ethical use of modifications
+
+COMMUNITY STANDARDS:
+Users are expected to uphold high standards of professional conduct by:
+- Contributing positively to the security community
+- Sharing knowledge while respecting confidentiality
+- Mentoring others in responsible security practices
+- Reporting misuse or unethical behavior when observed
+- Supporting efforts to improve industry standards and practices
+
+By using this software, you acknowledge that you have read, understood, and
+agree to be bound by all of these terms and conditions. You further certify
+that you have the necessary qualifications, training, and legal authority
+to use these tools in a responsible and ethical manner.
+
+For questions regarding this license, ethical use, or legal compliance,
+please contact: legal@redteam-operations.dev
+
+For professional training and certification programs:
+training@redteam-operations.dev
+
+For reporting misuse or ethical violations:
+ethics@redteam-operations.dev
+
+---
+
+Last Updated: January 28, 2024
+License Version: 1.0 Red Team Specialized
+Framework Version: 1.0.0

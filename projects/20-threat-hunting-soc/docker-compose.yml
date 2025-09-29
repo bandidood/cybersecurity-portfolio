@@ -1,0 +1,552 @@
+version: '3.8'
+
+services:
+  # =====================================
+  # ELK Stack - Log Analysis Platform
+  # =====================================
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: soc-elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=soc-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+      - ./configs/elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - soc-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: soc-logstash
+    environment:
+      - "LS_JAVA_OPTS=-Xms2g -Xmx2g"
+    volumes:
+      - ./configs/elk/logstash:/usr/share/logstash/pipeline:ro
+      - ./configs/elk/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - logstash-data:/usr/share/logstash/data
+    ports:
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "5001:5001"
+      - "5044:5044"
+      - "9600:9600"
+    networks:
+      - soc-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: soc-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=soc-kibana
+      - SERVER_HOST=0.0.0.0
+    volumes:
+      - ./configs/elk/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - kibana-data:/usr/share/kibana/data
+    ports:
+      - "5601:5601"
+    networks:
+      - soc-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =====================================
+  # Apache Kafka - Real-time Streaming
+  # =====================================
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: soc-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: soc-kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    ports:
+      - "9092:9092"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # =====================================
+  # MISP - Threat Intelligence Platform
+  # =====================================
+  
+  misp-db:
+    image: mysql:8.0
+    container_name: soc-misp-db
+    environment:
+      MYSQL_DATABASE: misp
+      MYSQL_USER: misp
+      MYSQL_PASSWORD: misp_password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - misp-db-data:/var/lib/mysql
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  misp-redis:
+    image: redis:7-alpine
+    container_name: soc-misp-redis
+    volumes:
+      - misp-redis-data:/data
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  misp:
+    image: coolacid/misp-docker:core-latest
+    container_name: soc-misp
+    depends_on:
+      - misp-db
+      - misp-redis
+    environment:
+      - HOSTNAME=https://misp.soc.local
+      - REDIS_FQDN=misp-redis
+      - INIT=true
+      - CRON_USER_ID=1
+      - DISIPV6=true
+      - SECURESSL=false
+    volumes:
+      - ./configs/misp:/var/www/MISP/app/Config
+      - misp-files:/var/www/MISP/app/files
+      - misp-logs:/var/www/MISP/app/tmp/logs
+    ports:
+      - "8080:80"
+      - "8443:443"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # =====================================
+  # TheHive + Cortex - SOAR Platform
+  # =====================================
+  
+  thehive-db:
+    image: cassandra:4.1
+    container_name: soc-thehive-db
+    environment:
+      - CASSANDRA_CLUSTER_NAME=thehive
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
+    volumes:
+      - thehive-db-data:/var/lib/cassandra
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  thehive:
+    image: strangebee/thehive:5.2
+    container_name: soc-thehive
+    depends_on:
+      - thehive-db
+    environment:
+      - JVM_OPTS=-Xms2g -Xmx2g
+    volumes:
+      - ./configs/thehive/application.conf:/opt/thp/thehive/conf/application.conf:ro
+      - thehive-data:/opt/thp/thehive/data
+      - thehive-index:/opt/thp/thehive/index
+    ports:
+      - "9000:9000"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  cortex:
+    image: thehiveproject/cortex:3.1.7
+    container_name: soc-cortex
+    environment:
+      - JVM_OPTS=-Xms1g -Xmx1g
+    volumes:
+      - ./configs/cortex/application.conf:/opt/cortex/conf/application.conf:ro
+      - cortex-data:/opt/cortex/data
+      - cortex-jobs:/tmp/cortex-jobs
+    ports:
+      - "9001:9001"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # =====================================
+  # OpenCTI - Threat Intelligence
+  # =====================================
+  
+  opencti-redis:
+    image: redis:7-alpine
+    container_name: soc-opencti-redis
+    volumes:
+      - opencti-redis-data:/data
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  opencti-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: soc-opencti-elasticsearch
+    environment:
+      - node.name=opencti-elasticsearch
+      - cluster.name=opencti-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opencti-elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  opencti:
+    image: opencti/platform:5.12.17
+    container_name: soc-opencti
+    environment:
+      - NODE_OPTIONS=--max_old_space_size=8096
+      - APP__PORT=8888
+      - APP__BASE_URL=http://localhost:8888
+      - APP__ADMIN__EMAIL=admin@soc.local
+      - APP__ADMIN__PASSWORD=ChangeMe123!
+      - APP__ADMIN__TOKEN=ChangeMe123!
+      - APP__APP_LOGS__LOGS_LEVEL=error
+      - REDIS__HOSTNAME=opencti-redis
+      - REDIS__PORT=6379
+      - ELASTICSEARCH__URL=http://opencti-elasticsearch:9200
+      - MINIO__ENDPOINT=minio
+      - MINIO__PORT=9000
+      - MINIO__USE_SSL=false
+      - MINIO__ACCESS_KEY=ChangeMeAccessKey
+      - MINIO__SECRET_KEY=ChangeMeSecretKey
+    depends_on:
+      - opencti-redis
+      - opencti-elasticsearch
+    ports:
+      - "8888:8888"
+    volumes:
+      - opencti-data:/opt/opencti/data
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2023-11-20T22-40-07Z
+    container_name: soc-minio
+    environment:
+      MINIO_ROOT_USER: ChangeMeAccessKey
+      MINIO_ROOT_PASSWORD: ChangeMeSecretKey
+    command: server /data --console-address ":9090"
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9090:9090"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # =====================================
+  # Additional Security Tools
+  # =====================================
+  
+  # Suricata IDS/IPS
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: soc-suricata
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    network_mode: host
+    volumes:
+      - ./configs/suricata:/etc/suricata:ro
+      - suricata-logs:/var/log/suricata
+      - suricata-rules:/var/lib/suricata/rules
+    restart: unless-stopped
+
+  # Zeek Network Security Monitor
+  zeek:
+    image: zeekurity/zeek:latest
+    container_name: soc-zeek
+    cap_add:
+      - NET_ADMIN
+    network_mode: host
+    volumes:
+      - ./configs/zeek:/opt/zeek/etc:ro
+      - zeek-logs:/opt/zeek/logs
+    restart: unless-stopped
+
+  # Yeti Threat Intelligence Platform
+  yeti-redis:
+    image: redis:7-alpine
+    container_name: soc-yeti-redis
+    volumes:
+      - yeti-redis-data:/data
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  yeti-mongodb:
+    image: mongo:7.0
+    container_name: soc-yeti-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: yeti
+      MONGO_INITDB_ROOT_PASSWORD: yeti_password
+    volumes:
+      - yeti-mongodb-data:/data/db
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  yeti:
+    image: yeti-platform/yeti:latest
+    container_name: soc-yeti
+    depends_on:
+      - yeti-redis
+      - yeti-mongodb
+    environment:
+      - YETI_REDIS_HOST=yeti-redis
+      - YETI_MONGODB_HOST=yeti-mongodb
+      - YETI_MONGODB_USERNAME=yeti
+      - YETI_MONGODB_PASSWORD=yeti_password
+    volumes:
+      - yeti-data:/opt/yeti/data
+    ports:
+      - "5000:5000"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # =====================================
+  # Monitoring and Visualization
+  # =====================================
+  
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: soc-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: soc-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # Jupyter for threat hunting and analysis
+  jupyter:
+    image: jupyter/datascience-notebook:latest
+    container_name: soc-jupyter
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=soc_hunting_token
+    volumes:
+      - ./scripts:/home/jovyan/work/scripts:ro
+      - jupyter-data:/home/jovyan/work/data
+    ports:
+      - "8888:8888"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # =====================================
+  # Data Processing and ML
+  # =====================================
+  
+  # Apache Spark for big data processing
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: soc-spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    volumes:
+      - spark-data:/opt/bitnami/spark/data
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: soc-spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    depends_on:
+      - spark-master
+    volumes:
+      - spark-data:/opt/bitnami/spark/data
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+# =====================================
+# Networks and Volumes
+# =====================================
+
+networks:
+  soc-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # ELK Stack volumes
+  elasticsearch-data:
+    driver: local
+  kibana-data:
+    driver: local
+  logstash-data:
+    driver: local
+
+  # Kafka volumes
+  zookeeper-data:
+    driver: local
+  zookeeper-logs:
+    driver: local
+  kafka-data:
+    driver: local
+
+  # MISP volumes
+  misp-db-data:
+    driver: local
+  misp-redis-data:
+    driver: local
+  misp-files:
+    driver: local
+  misp-logs:
+    driver: local
+
+  # TheHive and Cortex volumes
+  thehive-db-data:
+    driver: local
+  thehive-data:
+    driver: local
+  thehive-index:
+    driver: local
+  cortex-data:
+    driver: local
+  cortex-jobs:
+    driver: local
+
+  # OpenCTI volumes
+  opencti-redis-data:
+    driver: local
+  opencti-elasticsearch-data:
+    driver: local
+  opencti-data:
+    driver: local
+  minio-data:
+    driver: local
+
+  # Security tools volumes
+  suricata-logs:
+    driver: local
+  suricata-rules:
+    driver: local
+  zeek-logs:
+    driver: local
+
+  # Yeti volumes
+  yeti-redis-data:
+    driver: local
+  yeti-mongodb-data:
+    driver: local
+  yeti-data:
+    driver: local
+
+  # Monitoring volumes
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  jupyter-data:
+    driver: local
+
+  # Data processing volumes
+  spark-data:
+    driver: local

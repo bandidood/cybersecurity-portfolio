@@ -1,0 +1,93 @@
+# Enterprise VPN Management System - Python Dependencies
+# Core Dependencies
+
+# Automation & Configuration Management
+ansible>=6.0.0,<7.0.0
+ansible-core>=2.13.0,<2.14.0
+molecule[docker]>=4.0.0
+molecule-plugins[docker]>=23.0.0
+
+# Testing Framework
+pytest>=7.2.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-asyncio>=0.21.0
+pytest-xdist>=3.1.0
+
+# Security & Vulnerability Management
+safety>=2.3.0
+bandit[toml]>=1.7.0
+semgrep>=1.0.0
+
+# Code Quality & Linting
+flake8>=6.0.0
+black>=22.12.0
+isort>=5.11.0
+mypy>=0.991
+pre-commit>=2.21.0
+yamllint>=1.28.0
+
+# Configuration & Data Processing
+pyyaml>=6.0
+jinja2>=3.1.0
+cryptography>=38.0.0
+paramiko>=2.12.0
+netaddr>=0.8.0
+
+# Certificate Management
+pyopenssl>=22.1.0
+certifi>=2022.12.7
+
+# Network & VPN Tools
+python-openvpn>=1.2.0
+scapy>=2.5.0
+netifaces>=0.11.0
+psutil>=5.9.0
+
+# Database & Storage
+sqlalchemy>=1.4.0
+pymysql>=1.0.0
+redis>=4.5.0
+
+# API & Web Framework (for management interface)
+fastapi>=0.88.0
+uvicorn[standard]>=0.20.0
+pydantic>=1.10.0
+
+# Monitoring & Observability
+prometheus-client>=0.15.0
+opencensus-ext-logging>=0.1.1
+structlog>=22.3.0
+
+# Docker & Container Management
+docker>=6.0.0
+python-on-whales>=0.58.0
+
+# Cloud Integration (Optional)
+boto3>=1.26.0  # AWS
+azure-identity>=1.12.0  # Azure
+google-cloud-core>=2.3.0  # GCP
+
+# Development & Debugging
+ipython>=8.7.0
+ipdb>=0.13.9
+rich>=13.0.0
+typer>=0.7.0
+
+# Documentation
+mkdocs>=1.4.0
+mkdocs-material>=8.5.0
+mkdocs-mermaid2-plugin>=0.6.0
+
+# Data Validation & Serialization
+marshmallow>=3.19.0
+jsonschema>=4.17.0
+
+# Async & Concurrency
+asyncio-mqtt>=0.11.0
+aiofiles>=22.1.0
+
+# Development pins (can be updated)
+setuptools>=65.0.0
+wheel>=0.38.0
+pip-tools>=6.12.0

@@ -1,0 +1,755 @@
+version: '3.8'
+
+# Penetration Testing Framework - Docker Compose Configuration
+# Project 12: Comprehensive penetration testing lab environment
+# Version: 1.0.0
+
+networks:
+  pentest-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  vulnerable-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+  monitoring-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+  internal-network:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16
+
+volumes:
+  postgresql_data:
+  redis_data:
+  elasticsearch_data:
+  grafana_data:
+  prometheus_data:
+  vault_data:
+  evidence_data:
+  reports_data:
+  mysql_data:
+  mongodb_data:
+
+services:
+  # ===================================
+  # VULNERABLE APPLICATIONS
+  # ===================================
+  
+  # DVWA - Damn Vulnerable Web Application
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: pentest-dvwa
+    networks:
+      - vulnerable-network
+    ports:
+      - "8080:80"
+    environment:
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+      - MYSQL_ROOT_PASSWORD=r00t
+    restart: unless-stopped
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=web"
+      - "pentest.description=PHP/MySQL web vulnerabilities"
+
+  # WebGoat - OWASP WebGoat
+  webgoat:
+    image: webgoat/goatandwolf
+    container_name: pentest-webgoat
+    networks:
+      - vulnerable-network
+    ports:
+      - "8081:8080"
+      - "9001:9090"
+    environment:
+      - WEBGOAT_HOST=0.0.0.0
+      - WEBWOLF_HOST=0.0.0.0
+    restart: unless-stopped
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=web"
+      - "pentest.description=OWASP security training"
+
+  # Mutillidae - OWASP Mutillidae II
+  mutillidae:
+    image: citizenstig/nowasp
+    container_name: pentest-mutillidae
+    networks:
+      - vulnerable-network
+    ports:
+      - "8082:80"
+    restart: unless-stopped
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=web"
+      - "pentest.description=PHP web vulnerabilities"
+
+  # Juice Shop - OWASP Juice Shop
+  juice-shop:
+    image: bkimminich/juice-shop
+    container_name: pentest-juice-shop
+    networks:
+      - vulnerable-network
+    ports:
+      - "8083:3000"
+    restart: unless-stopped
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=web"
+      - "pentest.description=Modern web app vulnerabilities"
+
+  # Metasploitable - Linux Target
+  metasploitable:
+    image: tleemcjr/metasploitable2
+    container_name: pentest-metasploitable
+    networks:
+      - vulnerable-network
+    ports:
+      - "2222:22"
+      - "8084:80"
+      - "2121:21"
+      - "2323:23"
+      - "5432:5432"
+    restart: unless-stopped
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=system"
+      - "pentest.description=Linux system vulnerabilities"
+
+  # Vulnerable Database - MySQL
+  vulnerable-mysql:
+    image: mysql:5.7
+    container_name: pentest-mysql-vulnerable
+    networks:
+      - vulnerable-network
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=vulnerable
+      - MYSQL_DATABASE=testdb
+      - MYSQL_USER=test
+      - MYSQL_PASSWORD=test
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    command: --general-log=1 --log-queries-not-using-indexes=1
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=database"
+      - "pentest.description=MySQL with weak configuration"
+
+  # Vulnerable MongoDB
+  vulnerable-mongodb:
+    image: mongo:4.4
+    container_name: pentest-mongodb-vulnerable
+    networks:
+      - vulnerable-network
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    command: mongod --auth
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=database"
+      - "pentest.description=MongoDB with weak authentication"
+
+  # Vulnerable FTP Server
+  vulnerable-ftp:
+    image: delfer/alpine-ftp-server
+    container_name: pentest-ftp-vulnerable
+    networks:
+      - vulnerable-network
+    ports:
+      - "2121:21"
+      - "21000-21010:21000-21010"
+    environment:
+      - USERS=pentest|vulnerable|/ftp/pentest
+    volumes:
+      - ./lab/ftp-data:/ftp/pentest
+    restart: unless-stopped
+    labels:
+      - "pentest.category=vulnerable-app"
+      - "pentest.type=service"
+      - "pentest.description=FTP server with weak credentials"
+
+  # ===================================
+  # PENETRATION TESTING TOOLS
+  # ===================================
+
+  # Kali Linux - Main Attacker Platform
+  kali-linux:
+    image: kalilinux/kali-rolling
+    container_name: pentest-kali
+    networks:
+      - pentest-network
+      - vulnerable-network
+      - monitoring-network
+    ports:
+      - "5900:5900"  # VNC
+      - "4444:4444"  # Metasploit
+    environment:
+      - DISPLAY=:1
+    volumes:
+      - ./tools:/tools
+      - ./scripts:/scripts
+      - ./evidence:/evidence
+      - ./reports:/reports
+    tty: true
+    stdin_open: true
+    privileged: true
+    restart: unless-stopped
+    command: /bin/bash
+    labels:
+      - "pentest.category=tool"
+      - "pentest.type=platform"
+      - "pentest.description=Primary penetration testing platform"
+
+  # OWASP ZAP - Web Application Security Scanner
+  zap:
+    image: owasp/zap2docker-stable
+    container_name: pentest-zap
+    networks:
+      - pentest-network
+      - vulnerable-network
+    ports:
+      - "8085:8080"
+      - "8086:8090"
+    environment:
+      - ZAP_PROXY=true
+    volumes:
+      - ./evidence/zap:/zap/wrk
+    command: zap-webswing.sh
+    restart: unless-stopped
+    labels:
+      - "pentest.category=tool"
+      - "pentest.type=web-scanner"
+      - "pentest.description=OWASP ZAP web security scanner"
+
+  # Nuclei - Vulnerability Scanner
+  nuclei:
+    image: projectdiscovery/nuclei
+    container_name: pentest-nuclei
+    networks:
+      - pentest-network
+      - vulnerable-network
+    volumes:
+      - ./evidence/nuclei:/app/output
+      - ./configs/nuclei:/app/config
+    command: -update-templates
+    restart: "no"
+    labels:
+      - "pentest.category=tool"
+      - "pentest.type=scanner"
+      - "pentest.description=Fast vulnerability scanner"
+
+  # Nessus - Professional Vulnerability Scanner
+  nessus:
+    image: tenable/nessus:latest-ubuntu
+    container_name: pentest-nessus
+    networks:
+      - pentest-network
+      - vulnerable-network
+    ports:
+      - "8834:8834"
+    environment:
+      - USERNAME=admin
+      - PASSWORD=P@ssw0rd123
+    volumes:
+      - ./evidence/nessus:/opt/nessus/var/nessus/logs
+    restart: unless-stopped
+    labels:
+      - "pentest.category=tool"
+      - "pentest.type=scanner"
+      - "pentest.description=Professional vulnerability scanner"
+
+  # Burp Suite Community
+  burp-suite:
+    image: nginx:alpine
+    container_name: pentest-burp-proxy
+    networks:
+      - pentest-network
+      - vulnerable-network
+    ports:
+      - "8087:80"
+    volumes:
+      - ./configs/burp/nginx.conf:/etc/nginx/nginx.conf
+    restart: unless-stopped
+    labels:
+      - "pentest.category=tool"
+      - "pentest.type=proxy"
+      - "pentest.description=Burp Suite proxy configuration"
+
+  # ===================================
+  # MONITORING & LOGGING
+  # ===================================
+
+  # Elasticsearch - Log Storage
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: pentest-elasticsearch
+    networks:
+      - monitoring-network
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    labels:
+      - "pentest.category=monitoring"
+      - "pentest.type=storage"
+      - "pentest.description=Log storage and search"
+
+  # Logstash - Log Processing
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.0
+    container_name: pentest-logstash
+    networks:
+      - monitoring-network
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+    volumes:
+      - ./configs/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./evidence/logs:/logs
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    labels:
+      - "pentest.category=monitoring"
+      - "pentest.type=processing"
+      - "pentest.description=Log processing and enrichment"
+
+  # Kibana - Log Visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    container_name: pentest-kibana
+    networks:
+      - monitoring-network
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    labels:
+      - "pentest.category=monitoring"
+      - "pentest.type=visualization"
+      - "pentest.description=Log analysis dashboard"
+
+  # Grafana - Metrics Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pentest-grafana
+    networks:
+      - monitoring-network
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./configs/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./configs/grafana/datasources:/etc/grafana/provisioning/datasources
+    restart: unless-stopped
+    labels:
+      - "pentest.category=monitoring"
+      - "pentest.type=dashboard"
+      - "pentest.description=Metrics and performance dashboard"
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pentest-prometheus
+    networks:
+      - monitoring-network
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    labels:
+      - "pentest.category=monitoring"
+      - "pentest.type=metrics"
+      - "pentest.description=Metrics collection system"
+
+  # ===================================
+  # SECURITY ORCHESTRATION
+  # ===================================
+
+  # HashiCorp Vault - Secrets Management
+  vault:
+    image: vault:latest
+    container_name: pentest-vault
+    networks:
+      - internal-network
+      - pentest-network
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=pentest-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    volumes:
+      - vault_data:/vault/data
+      - ./configs/vault:/vault/config
+    cap_add:
+      - IPC_LOCK
+    restart: unless-stopped
+    labels:
+      - "pentest.category=security"
+      - "pentest.type=secrets"
+      - "pentest.description=Secrets and certificate management"
+
+  # MISP - Threat Intelligence Platform
+  misp:
+    image: coolacid/misp-docker:core-latest
+    container_name: pentest-misp
+    networks:
+      - pentest-network
+      - monitoring-network
+    ports:
+      - "8088:80"
+      - "8443:443"
+    environment:
+      - MYSQL_HOST=misp-db
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp_password
+      - MISP_ADMIN_EMAIL=admin@pentest.local
+      - MISP_ADMIN_PASSPHRASE=admin_password
+    depends_on:
+      - misp-db
+      - redis
+    volumes:
+      - ./evidence/misp:/var/www/MISP/app/files
+    restart: unless-stopped
+    labels:
+      - "pentest.category=intelligence"
+      - "pentest.type=platform"
+      - "pentest.description=Threat intelligence sharing platform"
+
+  # MISP Database
+  misp-db:
+    image: mysql:8.0
+    container_name: pentest-misp-db
+    networks:
+      - internal-network
+    environment:
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp_password
+      - MYSQL_ROOT_PASSWORD=root_password
+    volumes:
+      - ./lab/misp-db:/var/lib/mysql
+    restart: unless-stopped
+    labels:
+      - "pentest.category=database"
+      - "pentest.type=support"
+      - "pentest.description=MISP database backend"
+
+  # ===================================
+  # SUPPORTING SERVICES
+  # ===================================
+
+  # Redis - Cache and Session Storage
+  redis:
+    image: redis:6-alpine
+    container_name: pentest-redis
+    networks:
+      - internal-network
+      - pentest-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    labels:
+      - "pentest.category=database"
+      - "pentest.type=cache"
+      - "pentest.description=Cache and session storage"
+
+  # PostgreSQL - Primary Database
+  postgresql:
+    image: postgres:13
+    container_name: pentest-postgresql
+    networks:
+      - internal-network
+      - pentest-network
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=pentest
+      - POSTGRES_USER=pentest
+      - POSTGRES_PASSWORD=pentest_password
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./configs/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    labels:
+      - "pentest.category=database"
+      - "pentest.type=primary"
+      - "pentest.description=Primary application database"
+
+  # Nginx - Reverse Proxy and Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: pentest-nginx
+    networks:
+      - pentest-network
+      - vulnerable-network
+      - monitoring-network
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./configs/nginx/ssl:/etc/nginx/ssl
+      - ./evidence/nginx:/var/log/nginx
+    depends_on:
+      - dvwa
+      - webgoat
+      - mutillidae
+      - juice-shop
+    restart: unless-stopped
+    labels:
+      - "pentest.category=infrastructure"
+      - "pentest.type=proxy"
+      - "pentest.description=Reverse proxy and load balancer"
+
+  # ===================================
+  # NETWORK SIMULATION
+  # ===================================
+
+  # Network Traffic Generator
+  traffic-generator:
+    image: nicolaka/netshoot
+    container_name: pentest-traffic-gen
+    networks:
+      - vulnerable-network
+    volumes:
+      - ./scripts/traffic:/scripts
+    command: /bin/bash -c "while true; do sleep 3600; done"
+    restart: unless-stopped
+    labels:
+      - "pentest.category=simulation"
+      - "pentest.type=traffic"
+      - "pentest.description=Network traffic generation"
+
+  # Packet Capture Service
+  tcpdump-capture:
+    image: nicolaka/netshoot
+    container_name: pentest-tcpdump
+    networks:
+      - vulnerable-network
+      - pentest-network
+    volumes:
+      - ./evidence/pcaps:/captures
+    command: tcpdump -i eth0 -w /captures/capture-$(date +%Y%m%d-%H%M%S).pcap
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    labels:
+      - "pentest.category=capture"
+      - "pentest.type=network"
+      - "pentest.description=Network packet capture"
+
+  # ===================================
+  # REPORTING & ANALYSIS
+  # ===================================
+
+  # Report Generator Service
+  report-generator:
+    image: python:3.9-slim
+    container_name: pentest-reporter
+    networks:
+      - pentest-network
+      - monitoring-network
+    volumes:
+      - ./scripts/reporting:/app
+      - ./reports:/reports
+      - ./evidence:/evidence
+      - ./configs:/configs
+    working_dir: /app
+    command: python -m http.server 8089
+    ports:
+      - "8089:8089"
+    restart: unless-stopped
+    labels:
+      - "pentest.category=reporting"
+      - "pentest.type=generator"
+      - "pentest.description=Automated report generation"
+
+  # Jupyter Notebook - Analysis Platform
+  jupyter:
+    image: jupyter/datascience-notebook:latest
+    container_name: pentest-jupyter
+    networks:
+      - pentest-network
+      - monitoring-network
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=pentest-token
+    volumes:
+      - ./scripts/analysis:/home/jovyan/analysis
+      - ./evidence:/home/jovyan/evidence
+      - ./reports:/home/jovyan/reports
+    restart: unless-stopped
+    labels:
+      - "pentest.category=analysis"
+      - "pentest.type=notebook"
+      - "pentest.description=Data analysis and visualization"
+
+  # ===================================
+  # ADDITIONAL SECURITY TOOLS
+  # ===================================
+
+  # Falco - Runtime Security Monitoring
+  falco:
+    image: falcosecurity/falco:latest
+    container_name: pentest-falco
+    networks:
+      - monitoring-network
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /dev:/host/dev
+      - /proc:/host/proc:ro
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - ./configs/falco:/etc/falco
+    privileged: true
+    restart: unless-stopped
+    labels:
+      - "pentest.category=security"
+      - "pentest.type=monitoring"
+      - "pentest.description=Runtime security monitoring"
+
+  # Suricata - Network IDS/IPS
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: pentest-suricata
+    networks:
+      - vulnerable-network
+      - monitoring-network
+    volumes:
+      - ./configs/suricata/suricata.yaml:/etc/suricata/suricata.yaml
+      - ./evidence/suricata:/var/log/suricata
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    restart: unless-stopped
+    labels:
+      - "pentest.category=security"
+      - "pentest.type=ids"
+      - "pentest.description=Network intrusion detection"
+
+  # ===================================
+  # API AND WEBHOOK SERVICES
+  # ===================================
+
+  # Webhook Site for Testing
+  webhook-site:
+    image: tarampampam/webhook-tester
+    container_name: pentest-webhook
+    networks:
+      - pentest-network
+    ports:
+      - "8090:8080"
+    restart: unless-stopped
+    labels:
+      - "pentest.category=testing"
+      - "pentest.type=webhook"
+      - "pentest.description=Webhook testing service"
+
+  # API Testing Platform
+  postman-newman:
+    image: postman/newman:alpine
+    container_name: pentest-newman
+    networks:
+      - pentest-network
+      - vulnerable-network
+    volumes:
+      - ./configs/postman:/etc/newman
+      - ./evidence/api-tests:/results
+    command: run /etc/newman/pentest-collection.json --environment /etc/newman/environment.json
+    restart: "no"
+    labels:
+      - "pentest.category=testing"
+      - "pentest.type=api"
+      - "pentest.description=API testing automation"
+
+  # ===================================
+  # HEALTH MONITORING
+  # ===================================
+
+  # Health Check Service
+  healthcheck:
+    image: prom/node-exporter:latest
+    container_name: pentest-health
+    networks:
+      - monitoring-network
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    labels:
+      - "pentest.category=monitoring"
+      - "pentest.type=health"
+      - "pentest.description=System health monitoring"
+
+  # Watchtower - Container Updates
+  watchtower:
+    image: containrrr/watchtower
+    container_name: pentest-watchtower
+    networks:
+      - monitoring-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 30 2 * * *
+    restart: unless-stopped
+    labels:
+      - "pentest.category=maintenance"
+      - "pentest.type=updates"
+      - "pentest.description=Automated container updates"

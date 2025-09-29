@@ -1,0 +1,1069 @@
+# ============================================================================
+# Docker Compose - Red Team Operations & Penetration Testing Lab
+# ============================================================================
+# Professional red team operations and penetration testing environment
+# Supports PTES, OWASP, NIST, and MITRE ATT&CK methodologies
+# Version: 1.0.0
+# Last Updated: January 28, 2024
+# ============================================================================
+
+version: '3.8'
+
+# ============================================================================
+# NETWORKS - Isolated red team networks for security and stealth
+# ============================================================================
+
+networks:
+  # Red team operations network - Main attack infrastructure
+  redteam-ops:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-redteam
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+
+  # Target environment network - Practice targets and vulnerable systems
+  target-environment:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.31.0.0/16
+          gateway: 172.31.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-targets
+
+  # Command & Control network - C2 infrastructure
+  command-control:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.32.0.0/16
+          gateway: 172.32.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-c2
+
+  # Monitoring network - SOC and monitoring systems
+  monitoring-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.33.0.0/16
+          gateway: 172.33.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-monitor
+
+  # Isolated lab network - Completely isolated for malware analysis
+  isolated-lab:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.34.0.0/16
+          gateway: 172.34.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-isolated
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+
+  # Internet access network - Controlled internet access for OSINT
+  internet-access:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.35.0.0/16
+          gateway: 172.35.0.1
+
+# ============================================================================
+# VOLUMES - Persistent storage for campaigns and operations
+# ============================================================================
+
+volumes:
+  # Campaign data storage
+  campaign-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/campaigns
+      o: bind
+
+  # Payloads and exploits
+  payloads-storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/payloads
+      o: bind
+
+  # Tools and frameworks
+  tools-storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/tools
+      o: bind
+
+  # Target environments
+  targets-storage:
+    driver: local
+
+  # Reports and evidence
+  reports-storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/reports
+      o: bind
+
+  # Logs and operational data
+  redteam-logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/logs
+      o: bind
+
+  # Database storage
+  postgresql-data:
+    driver: local
+
+  elasticsearch-data:
+    driver: local
+
+  # C2 infrastructure data
+  c2-data:
+    driver: local
+
+  # SSL certificates and secrets
+  ssl-certs:
+    driver: local
+
+  # Backup storage
+  backup-storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/backup
+      o: bind
+
+# ============================================================================
+# SERVICES - Complete red team operations stack
+# ============================================================================
+
+services:
+
+  # ========================================================================
+  # RED TEAM COMMAND CENTER - Main operation control
+  # ========================================================================
+
+  # Kali Linux - Primary red team workstation
+  kali-redteam:
+    build:
+      context: ./docker/kali-linux
+      dockerfile: Dockerfile
+      args:
+        - KALI_VERSION=2024.1
+        - METASPLOIT_VERSION=6.3.0
+        - TOOLS_CONFIG=redteam
+    container_name: kali-redteam
+    hostname: kali-command
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    volumes:
+      - campaign-data:/campaigns:rw
+      - payloads-storage:/payloads:rw
+      - tools-storage:/opt/redteam-tools:rw
+      - reports-storage:/reports:rw
+      - redteam-logs:/var/log/redteam:rw
+      - ./scripts:/scripts:ro
+      - ./configs/kali:/config:ro
+    networks:
+      - redteam-ops
+      - internet-access
+      - command-control
+    environment:
+      - REDTEAM_CAMPAIGN=${CAMPAIGN_NAME:-operation_red_dawn}
+      - TARGET_DOMAIN=${TARGET_DOMAIN:-target.local}
+      - C2_SERVER=${C2_SERVER:-c2.redteam.local}
+      - OPSEC_LEVEL=${OPSEC_LEVEL:-high}
+      - ATTRIBUTION_AVOIDANCE=enabled
+    ports:
+      - "2222:22"    # SSH access
+      - "5900:5900"  # VNC access
+      - "8080:8080"  # Web interface
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kali.rule=Host(`kali.redteam.local`)"
+
+  # Parrot Security OS - Secondary attack platform
+  parrot-security:
+    image: parrotsec/security:latest
+    container_name: parrot-security
+    hostname: parrot-ops
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - campaign-data:/campaigns:rw
+      - tools-storage:/opt/tools:rw
+      - redteam-logs:/var/log/parrot:rw
+    networks:
+      - redteam-ops
+      - internet-access
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=parrot_vnc_pass
+    ports:
+      - "5901:5900"  # VNC access
+
+  # Red Team Command Console - Web-based campaign management
+  redteam-console:
+    build:
+      context: ./docker/redteam-console
+      dockerfile: Dockerfile
+    container_name: redteam-console
+    hostname: redteam-console
+    restart: unless-stopped
+    volumes:
+      - campaign-data:/data/campaigns:rw
+      - reports-storage:/data/reports:rw
+      - redteam-logs:/var/log/console:rw
+      - ./configs/console:/config:ro
+    networks:
+      - redteam-ops
+      - monitoring-net
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://redteam:redteam_password@postgresql:5432/redteam
+      - SESSION_SECRET=redteam-session-secret-2024
+      - JWT_SECRET=redteam-jwt-secret-2024
+    depends_on:
+      - postgresql
+    ports:
+      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.console.rule=Host(`console.redteam.local`)"
+
+  # ========================================================================
+  # COMMAND & CONTROL INFRASTRUCTURE
+  # ========================================================================
+
+  # Cobalt Strike Team Server
+  cobalt-strike:
+    build:
+      context: ./docker/cobalt-strike
+      dockerfile: Dockerfile
+      args:
+        - COBALTSTRIKE_VERSION=4.8
+    container_name: cobalt-strike
+    hostname: teamserver
+    restart: unless-stopped
+    volumes:
+      - c2-data:/opt/cobaltstrike/data:rw
+      - ssl-certs:/opt/cobaltstrike/certs:ro
+      - redteam-logs:/var/log/cobaltstrike:rw
+      - ./configs/cobaltstrike:/config:ro
+    networks:
+      - command-control
+      - internet-access
+    environment:
+      - TEAMSERVER_PASSWORD=teamserver_password_2024
+      - TEAMSERVER_HOST=0.0.0.0
+      - TEAMSERVER_PORT=50050
+      - MALLEABLE_C2_PROFILE=/config/malleable-c2.profile
+    ports:
+      - "50050:50050"  # Team server port
+      - "80:80"        # HTTP listener
+      - "443:443"      # HTTPS listener
+      - "53:53/udp"    # DNS listener
+
+  # Metasploit Pro Framework
+  metasploit-pro:
+    build:
+      context: ./docker/metasploit
+      dockerfile: Dockerfile
+      args:
+        - METASPLOIT_VERSION=6.3.0
+    container_name: metasploit-pro
+    hostname: msf-pro
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - tools-storage:/opt/metasploit:rw
+      - payloads-storage:/payloads:rw
+      - redteam-logs:/var/log/metasploit:rw
+    networks:
+      - command-control
+      - redteam-ops
+    environment:
+      - METASPLOIT_USER=msf
+      - METASPLOIT_PASS=msf_password_2024
+      - POSTGRES_CONNECTION=postgresql://metasploit:metasploit_pass@postgresql:5432/msf
+    depends_on:
+      - postgresql
+    ports:
+      - "3790:3790"  # Metasploit web service
+      - "4444:4444"  # Default meterpreter listener
+      - "4445:4445"  # Additional listener
+
+  # Empire/Starkiller C2 Framework
+  empire-starkiller:
+    build:
+      context: ./docker/empire
+      dockerfile: Dockerfile
+    container_name: empire-starkiller
+    hostname: empire-c2
+    restart: unless-stopped
+    volumes:
+      - c2-data:/opt/Empire/data:rw
+      - redteam-logs:/var/log/empire:rw
+    networks:
+      - command-control
+      - internet-access
+    environment:
+      - EMPIRE_USERNAME=admin
+      - EMPIRE_PASSWORD=empire_admin_2024
+      - EMPIRE_API_KEY=empire-api-key-2024
+    ports:
+      - "1337:1337"  # Empire API
+      - "5000:5000"  # Starkiller web interface
+
+  # Custom C2 Framework
+  custom-c2:
+    build:
+      context: ./docker/custom-c2
+      dockerfile: Dockerfile
+    container_name: custom-c2
+    hostname: custom-c2
+    restart: unless-stopped
+    volumes:
+      - c2-data:/opt/c2/data:rw
+      - ssl-certs:/opt/c2/certs:ro
+      - redteam-logs:/var/log/custom-c2:rw
+      - ./configs/custom-c2:/config:ro
+    networks:
+      - command-control
+    environment:
+      - C2_BIND_PORT=8443
+      - C2_ENCRYPTION_KEY=custom-c2-encryption-key-2024
+      - C2_PROTOCOL=https
+    ports:
+      - "8443:8443"  # Custom C2 listener
+
+  # ========================================================================
+  # TARGET PRACTICE ENVIRONMENTS
+  # ========================================================================
+
+  # DVWA - Damn Vulnerable Web Application
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: dvwa
+    hostname: dvwa-target
+    restart: unless-stopped
+    volumes:
+      - targets-storage:/var/www/html:rw
+    networks:
+      - target-environment
+    environment:
+      - MYSQL_HOSTNAME=mysql-targets
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USERNAME=dvwa
+      - MYSQL_PASSWORD=dvwa_password
+    depends_on:
+      - mysql-targets
+    ports:
+      - "8081:80"
+    labels:
+      - "target.type=web"
+      - "target.difficulty=beginner"
+
+  # WebGoat - OWASP WebGoat
+  webgoat:
+    image: webgoat/goatandwolf:latest
+    container_name: webgoat
+    hostname: webgoat-target
+    restart: unless-stopped
+    networks:
+      - target-environment
+    ports:
+      - "8082:8080"  # WebGoat
+      - "9090:9090"  # WebWolf
+    labels:
+      - "target.type=web"
+      - "target.difficulty=intermediate"
+
+  # Mutillidae II - OWASP Mutillidae
+  mutillidae:
+    image: citizenstig/nowasp:latest
+    container_name: mutillidae
+    hostname: mutillidae-target
+    restart: unless-stopped
+    networks:
+      - target-environment
+    ports:
+      - "8083:80"
+    labels:
+      - "target.type=web"
+      - "target.difficulty=advanced"
+
+  # bWAPP - Buggy Web Application
+  bwapp:
+    image: itsecgames/bwapp:latest
+    container_name: bwapp
+    hostname: bwapp-target
+    restart: unless-stopped
+    networks:
+      - target-environment
+    ports:
+      - "8084:80"
+    labels:
+      - "target.type=web"
+      - "target.difficulty=intermediate"
+
+  # Juice Shop - OWASP Juice Shop
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: juice-shop
+    hostname: juice-shop-target
+    restart: unless-stopped
+    networks:
+      - target-environment
+    environment:
+      - NODE_ENV=unsafe
+    ports:
+      - "8085:3000"
+    labels:
+      - "target.type=web"
+      - "target.difficulty=beginner"
+
+  # Metasploitable 3 - Linux vulnerable target
+  metasploitable3:
+    build:
+      context: ./docker/metasploitable3
+      dockerfile: Dockerfile
+    container_name: metasploitable3
+    hostname: metasploitable3
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - target-environment
+    ports:
+      - "2323:23"    # Telnet
+      - "2121:21"    # FTP
+      - "8086:80"    # HTTP
+    labels:
+      - "target.type=network"
+      - "target.os=linux"
+      - "target.difficulty=intermediate"
+
+  # Windows Server vulnerable target
+  windows-target:
+    build:
+      context: ./docker/windows-target
+      dockerfile: Dockerfile
+    container_name: windows-target
+    hostname: win-target
+    restart: unless-stopped
+    networks:
+      - target-environment
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=VulnerableP@ss123!
+    ports:
+      - "3389:3389"  # RDP
+      - "445:445"    # SMB
+      - "135:135"    # RPC
+    labels:
+      - "target.type=network"
+      - "target.os=windows"
+      - "target.difficulty=advanced"
+
+  # MySQL targets database
+  mysql-targets:
+    image: mysql:8.0
+    container_name: mysql-targets
+    hostname: mysql-targets
+    restart: unless-stopped
+    volumes:
+      - ./configs/mysql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - target-environment
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_vulnerable_password
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=dvwa_password
+    ports:
+      - "3306:3306"
+
+  # ========================================================================
+  # VULNERABILITY SCANNERS
+  # ========================================================================
+
+  # Burp Suite Professional
+  burp-suite:
+    build:
+      context: ./docker/burp-suite
+      dockerfile: Dockerfile
+      args:
+        - BURPSUITE_VERSION=2023.12
+    container_name: burp-suite
+    hostname: burp-suite
+    restart: unless-stopped
+    volumes:
+      - tools-storage:/opt/burp:rw
+      - reports-storage:/reports:rw
+      - ./configs/burp:/config:ro
+    networks:
+      - redteam-ops
+      - target-environment
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=burp_vnc_pass
+      - BURP_LICENSE_KEY=${BURP_LICENSE_KEY}
+    ports:
+      - "8080:8080"  # Burp proxy
+      - "5902:5900"  # VNC access
+
+  # OWASP ZAP - Web application security scanner
+  owasp-zap:
+    image: owasp/zap2docker-stable:latest
+    container_name: owasp-zap
+    hostname: owasp-zap
+    restart: unless-stopped
+    volumes:
+      - reports-storage:/zap/reports:rw
+      - redteam-logs:/var/log/zap:rw
+    networks:
+      - redteam-ops
+      - target-environment
+    environment:
+      - ZAP_PROXY_PORT=8090
+    ports:
+      - "8090:8090"  # ZAP proxy
+    command: zap-webswing.sh
+
+  # Nuclei - Vulnerability scanner
+  nuclei:
+    image: projectdiscovery/nuclei:latest
+    container_name: nuclei
+    hostname: nuclei
+    restart: unless-stopped
+    volumes:
+      - reports-storage:/reports:rw
+      - ./configs/nuclei:/config:ro
+    networks:
+      - redteam-ops
+      - target-environment
+      - internet-access
+    command: ["sleep", "infinity"]
+
+  # Nmap - Network discovery and security auditing
+  nmap-scanner:
+    build:
+      context: ./docker/nmap
+      dockerfile: Dockerfile
+      args:
+        - NMAP_VERSION=7.94
+    container_name: nmap-scanner
+    hostname: nmap
+    restart: unless-stopped
+    volumes:
+      - reports-storage:/reports:rw
+      - ./configs/nmap:/config:ro
+    networks:
+      - redteam-ops
+      - target-environment
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    command: ["sleep", "infinity"]
+
+  # ========================================================================
+  # MALWARE ANALYSIS LAB
+  # ========================================================================
+
+  # REMnux - Malware analysis distribution
+  remnux:
+    image: remnux/remnux-distro:focal
+    container_name: remnux
+    hostname: remnux
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - tools-storage:/samples:rw
+      - reports-storage:/analysis:rw
+      - redteam-logs:/var/log/remnux:rw
+    networks:
+      - isolated-lab
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=remnux_vnc_pass
+    ports:
+      - "5903:5900"  # VNC access
+
+  # Cuckoo Sandbox - Automated malware analysis
+  cuckoo-sandbox:
+    build:
+      context: ./docker/cuckoo
+      dockerfile: Dockerfile
+    container_name: cuckoo-sandbox
+    hostname: cuckoo
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - tools-storage:/opt/cuckoo:rw
+      - reports-storage:/cuckoo/storage:rw
+      - redteam-logs:/var/log/cuckoo:rw
+    networks:
+      - isolated-lab
+    environment:
+      - CUCKOO_WEB=yes
+      - CUCKOO_MACHINERY=virtualbox
+    ports:
+      - "8000:8000"  # Cuckoo web interface
+
+  # ========================================================================
+  # OSINT AND RECONNAISSANCE TOOLS
+  # ========================================================================
+
+  # TheHarvester - OSINT gathering
+  theharvester:
+    build:
+      context: ./docker/theharvester
+      dockerfile: Dockerfile
+    container_name: theharvester
+    hostname: theharvester
+    restart: unless-stopped
+    volumes:
+      - reports-storage:/reports:rw
+    networks:
+      - internet-access
+    command: ["sleep", "infinity"]
+
+  # Maltego - Link analysis and data mining
+  maltego:
+    build:
+      context: ./docker/maltego
+      dockerfile: Dockerfile
+    container_name: maltego
+    hostname: maltego
+    restart: unless-stopped
+    volumes:
+      - reports-storage:/maltego:rw
+    networks:
+      - internet-access
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=maltego_vnc_pass
+    ports:
+      - "5904:5900"  # VNC access
+
+  # ========================================================================
+  # SOCIAL ENGINEERING TOOLKIT
+  # ========================================================================
+
+  # SET - Social Engineer Toolkit
+  social-engineer-toolkit:
+    build:
+      context: ./docker/set
+      dockerfile: Dockerfile
+    container_name: set
+    hostname: set
+    restart: unless-stopped
+    volumes:
+      - campaign-data:/set/campaigns:rw
+      - reports-storage:/set/reports:rw
+    networks:
+      - redteam-ops
+      - internet-access
+    ports:
+      - "8087:80"    # SET web interface
+
+  # GoPhish - Phishing framework
+  gophish:
+    image: gophish/gophish:latest
+    container_name: gophish
+    hostname: gophish
+    restart: unless-stopped
+    volumes:
+      - campaign-data:/opt/gophish/data:rw
+      - ./configs/gophish:/config:ro
+    networks:
+      - redteam-ops
+      - internet-access
+    environment:
+      - GOPHISH_INITIAL_ADMIN_PASSWORD=gophish_admin_2024
+    ports:
+      - "3333:3333"  # GoPhish admin
+      - "8088:80"    # Phishing server
+
+  # ========================================================================
+  # DATABASE SYSTEMS
+  # ========================================================================
+
+  # PostgreSQL - Main database for red team operations
+  postgresql:
+    image: postgres:15
+    container_name: postgresql
+    hostname: postgresql
+    restart: unless-stopped
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data:rw
+      - ./configs/postgresql:/docker-entrypoint-initdb.d:ro
+      - redteam-logs:/var/log/postgresql:rw
+    networks:
+      - redteam-ops
+    environment:
+      - POSTGRES_DB=redteam
+      - POSTGRES_USER=redteam
+      - POSTGRES_PASSWORD=redteam_password
+      - POSTGRES_MULTIPLE_DATABASES=metasploit,empire,campaigns
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redteam"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Redis - Caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    hostname: redis
+    restart: unless-stopped
+    volumes:
+      - ./configs/redis:/usr/local/etc/redis:ro
+    networks:
+      - redteam-ops
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass redis_password_2024
+    ports:
+      - "6379:6379"
+
+  # ========================================================================
+  # MONITORING AND LOGGING
+  # ========================================================================
+
+  # Elasticsearch - Log storage and search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    hostname: elasticsearch
+    restart: unless-stopped
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data:rw
+      - ./configs/elasticsearch:/usr/share/elasticsearch/config:ro
+    networks:
+      - monitoring-net
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - cluster.name=redteam-cluster
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+
+  # Logstash - Log processing
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: logstash
+    hostname: logstash
+    restart: unless-stopped
+    volumes:
+      - ./configs/logstash:/usr/share/logstash/pipeline:ro
+      - redteam-logs:/logs:ro
+    networks:
+      - monitoring-net
+    environment:
+      - LS_JAVA_OPTS=-Xmx1g -Xms1g
+    depends_on:
+      - elasticsearch
+
+  # Kibana - Log visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    hostname: kibana
+    restart: unless-stopped
+    volumes:
+      - ./configs/kibana:/usr/share/kibana/config:ro
+    networks:
+      - monitoring-net
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana.redteam.local
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kibana.rule=Host(`kibana.redteam.local`)"
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    volumes:
+      - ./configs/grafana:/etc/grafana:ro
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring-net
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=grafana_admin_2024
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.redteam.local`)"
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./configs/prometheus:/etc/prometheus:ro
+    networks:
+      - monitoring-net
+    ports:
+      - "9090:9090"
+
+  # ========================================================================
+  # REVERSE PROXY AND LOAD BALANCER
+  # ========================================================================
+
+  # Traefik - Reverse proxy with SSL termination
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    hostname: traefik
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configs/traefik:/etc/traefik:ro
+      - ssl-certs:/certs:ro
+    networks:
+      - redteam-ops
+      - monitoring-net
+    environment:
+      - TRAEFIK_API_DASHBOARD=true
+      - TRAEFIK_PROVIDERS_DOCKER=true
+      - TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT=false
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.redteam.local`)"
+
+  # ========================================================================
+  # UTILITIES AND MANAGEMENT
+  # ========================================================================
+
+  # Portainer - Container management
+  portainer:
+    image: portainer/portainer-ce:2.19.0
+    container_name: portainer
+    hostname: portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./configs/portainer:/data:rw
+    networks:
+      - redteam-ops
+    ports:
+      - "9443:9443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.redteam.local`)"
+
+  # Watchtower - Automated updates
+  watchtower:
+    image: containrrr/watchtower:1.6.0
+    container_name: watchtower
+    hostname: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - redteam-ops
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 2 * * *  # Daily at 2 AM
+      - WATCHTOWER_NOTIFICATIONS=email
+    command: --cleanup --schedule "0 2 * * *"
+
+  # ========================================================================
+  # BACKUP AND ARCHIVAL
+  # ========================================================================
+
+  # Restic - Backup solution
+  restic-backup:
+    image: restic/restic:0.16.0
+    container_name: restic-backup
+    hostname: restic-backup
+    restart: unless-stopped
+    volumes:
+      - campaign-data:/data/campaigns:ro
+      - reports-storage:/data/reports:ro
+      - redteam-logs:/data/logs:ro
+      - backup-storage:/backups:rw
+      - ./scripts/backup:/scripts:ro
+    networks:
+      - redteam-ops
+    environment:
+      - RESTIC_REPOSITORY=/backups
+      - RESTIC_PASSWORD_FILE=/scripts/restic_password
+      - BACKUP_SCHEDULE=0 3 * * *  # Daily at 3 AM
+    command: ["sleep", "infinity"]
+
+  # ========================================================================
+  # TRAINING AND CTF ENVIRONMENT
+  # ========================================================================
+
+  # CTF Platform - Capture The Flag challenges
+  ctfd:
+    image: ctfd/ctfd:latest
+    container_name: ctfd
+    hostname: ctfd
+    restart: unless-stopped
+    volumes:
+      - ./configs/ctfd:/opt/CTFd/CTFd/uploads:rw
+    networks:
+      - target-environment
+    environment:
+      - DATABASE_URL=postgresql://ctf:ctf_password@postgresql:5432/ctf
+      - SECRET_KEY=ctf-secret-key-2024
+    depends_on:
+      - postgresql
+    ports:
+      - "8089:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ctfd.rule=Host(`ctf.redteam.local`)"
+
+  # VulnHub Practice Environment
+  vulnhub-practice:
+    build:
+      context: ./docker/vulnhub
+      dockerfile: Dockerfile
+    container_name: vulnhub-practice
+    hostname: vulnhub
+    restart: unless-stopped
+    networks:
+      - target-environment
+    ports:
+      - "8090-8099:8000-8009"  # Multiple vulnerable services
+
+  # ========================================================================
+  # REPORTING AND DOCUMENTATION
+  # ========================================================================
+
+  # Report Generator - Automated reporting
+  report-generator:
+    build:
+      context: ./docker/report-generator
+      dockerfile: Dockerfile
+    container_name: report-generator
+    hostname: report-gen
+    restart: unless-stopped
+    volumes:
+      - campaign-data:/data/campaigns:ro
+      - reports-storage:/data/reports:rw
+      - ./templates:/templates:ro
+    networks:
+      - redteam-ops
+    environment:
+      - REPORT_FORMAT=pdf
+      - TEMPLATE_PATH=/templates
+    command: ["sleep", "infinity"]
+
+  # ========================================================================
+  # NETWORK SIMULATION AND TESTING
+  # ========================================================================
+
+  # Network Traffic Generator
+  traffic-generator:
+    build:
+      context: ./docker/traffic-generator
+      dockerfile: Dockerfile
+    container_name: traffic-generator
+    hostname: traffic-gen
+    restart: unless-stopped
+    networks:
+      - target-environment
+    environment:
+      - TRAFFIC_TYPE=mixed
+      - GENERATION_RATE=1000pps
+    command: ["sleep", "infinity"]
+
+  # Packet Capture Service
+  packet-capture:
+    build:
+      context: ./docker/packet-capture
+      dockerfile: Dockerfile
+    container_name: packet-capture
+    hostname: pcap
+    restart: unless-stopped
+    volumes:
+      - reports-storage:/captures:rw
+    networks:
+      - target-environment
+      - redteam-ops
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    command: ["sleep", "infinity"]
+
+# ============================================================================
+# HEALTH CHECKS AND MONITORING
+# ============================================================================
+
+  # Health Monitor - Overall system health
+  health-monitor:
+    build:
+      context: ./docker/health-monitor
+      dockerfile: Dockerfile
+    container_name: health-monitor
+    hostname: health-monitor
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - redteam-logs:/logs:rw
+    networks:
+      - monitoring-net
+      - redteam-ops
+    environment:
+      - MONITOR_INTERVAL=60
+      - ALERT_WEBHOOK=${ALERT_WEBHOOK_URL}
+    ports:
+      - "8888:8888"
+
+# ============================================================================
+# END OF DOCKER COMPOSE
+# ============================================================================

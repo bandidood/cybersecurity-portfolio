@@ -1,0 +1,97 @@
+# DevSecOps Pipeline Security - Requirements
+
+# Web Framework & API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database & ORM
+sqlalchemy==2.0.23
+alembic==1.13.0
+psycopg2-binary==2.9.9
+redis==5.0.1
+
+# Security & Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography==41.0.8
+python-multipart==0.0.6
+
+# Container & Docker
+docker==6.1.3
+kubernetes==28.1.0
+
+# CI/CD Integration
+jenkinsapi==1.8.2
+github3.py==4.0.1
+python-gitlab==4.1.1
+
+# Security Scanners
+bandit==1.7.5
+safety==2.3.5
+semgrep==1.45.0
+trivy-python==0.6.0
+
+# Static Analysis
+pylint==3.0.3
+flake8==6.1.0
+mypy==1.7.1
+black==23.11.0
+
+# Infrastructure as Code
+terraform-compliance==1.3.46
+checkov==3.1.25
+cfn-lint==0.83.3
+
+# Monitoring & Metrics
+prometheus-client==0.19.0
+grafana-api==1.0.3
+elasticsearch==8.11.0
+
+# DevOps Tools
+ansible==8.7.0
+pyyaml==6.0.1
+jinja2==3.1.2
+
+# HTTP & Networking
+httpx==0.25.2
+requests==2.31.0
+aiohttp==3.9.1
+
+# Data Processing
+pandas==2.1.4
+numpy==1.25.2
+pydash==7.0.6
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==20.1.0
+
+# Utilities
+click==8.1.7
+rich==13.7.0
+loguru==0.7.2
+python-dotenv==1.0.0
+schedule==1.2.0
+
+# Report Generation
+reportlab==4.0.7
+weasyprint==60.2
+jinja2-time==0.2.0
+
+# Cloud Providers
+boto3==1.34.0
+azure-storage-blob==12.19.0
+google-cloud-storage==2.10.0
+
+# Compliance & Standards
+openscap-python==1.3.7
+compliance-checker==5.0.0
+
+# Vulnerability Databases
+nvdlib==0.7.4
+cve-search-python==1.1

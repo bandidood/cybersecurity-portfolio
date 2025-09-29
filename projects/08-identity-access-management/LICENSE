@@ -1,0 +1,291 @@
+MIT License
+
+Copyright (c) 2024 Cybersecurity Portfolio - Enterprise Identity & Access Management (IAM)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+===============================================================================
+                    IDENTITY & ACCESS MANAGEMENT SECURITY NOTICES
+===============================================================================
+
+CRITICAL SECURITY DISCLAIMERS:
+
+1. IDENTITY MANAGEMENT SYSTEMS
+   This project involves identity and access management systems that control
+   access to sensitive resources and personal data. These systems are critical
+   security infrastructure components that require:
+   - Secure deployment in isolated environments
+   - Proper security hardening and configuration
+   - Regular security updates and patch management
+   - Comprehensive monitoring and audit logging
+   - Compliance with applicable privacy and security regulations
+
+2. AUTHENTICATION AND AUTHORIZATION TESTING
+   The authentication and authorization testing tools included in this project
+   must only be used:
+   - In authorized test environments with proper approval
+   - Against systems you own or have explicit written permission to test
+   - In compliance with organizational security policies
+   - Following responsible disclosure practices for vulnerabilities
+   - With appropriate legal authorization and documentation
+
+3. PRIVILEGED ACCESS MANAGEMENT (PAM)
+   The PAM components handle highly privileged credentials and access controls:
+   - PAM vaults store critical system and application passwords
+   - Privileged session recording captures sensitive administrative activities
+   - Break-glass procedures bypass normal security controls
+   - Emergency access mechanisms require strict governance
+   - All PAM activities must be monitored and audited
+
+4. PERSONAL DATA AND PRIVACY PROTECTION
+   Identity management systems process personal and sensitive information:
+   - User credentials, profiles, and authentication data
+   - Biometric data for advanced authentication methods
+   - Behavioral analytics and access pattern data
+   - Audit logs containing detailed user activity information
+   - Cross-system identity federation data
+
+   Users must ensure compliance with applicable privacy regulations including:
+   - GDPR (General Data Protection Regulation)
+   - CCPA (California Consumer Privacy Act)
+   - PIPEDA (Personal Information Protection and Electronic Documents Act)
+   - Local and national privacy protection laws
+
+REGULATORY COMPLIANCE CONSIDERATIONS:
+
+1. FINANCIAL SERVICES COMPLIANCE
+   - **SOX (Sarbanes-Oxley Act)**: Financial reporting access controls
+   - **PCI-DSS**: Payment card industry data security standards
+   - **Basel III**: Banking regulatory framework requirements
+   - **GLBA**: Gramm-Leach-Bliley Act financial privacy requirements
+
+2. HEALTHCARE COMPLIANCE
+   - **HIPAA**: Health Insurance Portability and Accountability Act
+   - **HITECH**: Health Information Technology for Economic and Clinical Health
+   - **FDA 21 CFR Part 11**: Electronic records and signatures
+   - **GDPR Article 9**: Special categories of personal data
+
+3. GOVERNMENT AND DEFENSE
+   - **NIST 800-63**: Digital Identity Guidelines
+   - **FISMA**: Federal Information Security Management Act
+   - **FedRAMP**: Federal Risk and Authorization Management Program
+   - **ITAR**: International Traffic in Arms Regulations
+
+4. INTERNATIONAL STANDARDS
+   - **ISO 27001**: Information Security Management Systems
+   - **ISO 27002**: Information Security Controls
+   - **ISO 29100**: Privacy Framework
+   - **COBIT**: Control Objectives for Information Technologies
+
+AUTHENTICATION SECURITY WARNINGS:
+
+1. MULTI-FACTOR AUTHENTICATION (MFA)
+   - MFA bypass techniques are for authorized testing only
+   - Social engineering attacks must not target real users
+   - SMS-based OTP has known vulnerabilities and limitations
+   - Hardware tokens require proper enrollment and management
+   - Biometric data must be handled with extreme care
+
+2. SINGLE SIGN-ON (SSO) SECURITY
+   - SAML assertion manipulation requires authorized testing environment
+   - OAuth token interception must be conducted ethically
+   - Session replay attacks should only be performed on test systems
+   - Cross-site request forgery (CSRF) testing requires proper scope
+   - Identity provider trust relationships affect multiple systems
+
+3. DIRECTORY SERVICE SECURITY
+   - LDAP injection attacks must be limited to authorized test environments
+   - Kerberoasting attacks require explicit authorization
+   - Golden ticket attacks can compromise entire domains
+   - Directory enumeration should respect privacy and authorization
+   - Privilege escalation testing must be carefully scoped
+
+DEPLOYMENT AND OPERATIONAL SECURITY:
+
+1. PRODUCTION DEPLOYMENT RESTRICTIONS
+   Before deploying in any production environment:
+   - Conduct thorough security assessment and penetration testing
+   - Implement comprehensive monitoring and incident response procedures
+   - Ensure compliance with all applicable regulatory requirements
+   - Establish proper backup and disaster recovery procedures
+   - Document all security configurations and operational procedures
+
+2. ACCESS CONTROL AND GOVERNANCE
+   - Implement principle of least privilege for all system access
+   - Establish proper segregation of duties for privileged operations
+   - Maintain comprehensive audit logs for all identity operations
+   - Conduct regular access reviews and attestation procedures
+   - Monitor for suspicious activities and policy violations
+
+3. ENCRYPTION AND DATA PROTECTION
+   - Encrypt all identity data at rest and in transit
+   - Use strong cryptographic algorithms and key management
+   - Implement proper certificate lifecycle management
+   - Protect cryptographic keys with hardware security modules
+   - Regular rotation of secrets and credentials
+
+PENETRATION TESTING RESTRICTIONS:
+
+The identity security testing tools included are intended for:
+- Authorized security assessments of owned systems
+- Educational purposes in controlled lab environments
+- Compliance validation and audit preparation
+- Vulnerability research with proper disclosure
+
+UNAUTHORIZED USE of these tools may violate:
+- Computer Fraud and Abuse Act (CFAA) - United States
+- Computer Misuse Act - United Kingdom
+- Criminal Code of Canada - Canada
+- Similar cybercrime laws in other jurisdictions
+
+COMPLIANCE TESTING DISCLAIMERS:
+
+1. AUDIT PREPARATION
+   - Compliance testing tools provide guidance but not legal advice
+   - Independent audit validation is required for certification
+   - Regulatory requirements change and must be monitored
+   - Legal counsel should review compliance implementations
+   - Documentation requirements vary by jurisdiction and industry
+
+2. PRIVACY IMPACT ASSESSMENTS
+   - Privacy impact assessments must be conducted for personal data processing
+   - Data protection officer consultation may be required
+   - Cross-border data transfer restrictions must be considered
+   - Consent management and user rights must be implemented
+   - Privacy by design principles should be followed
+
+LIMITATION OF LIABILITY:
+
+The authors, contributors, and distributors of this software shall not be held
+liable for any damages, security breaches, privacy violations, compliance
+failures, or legal consequences resulting from the use, misuse, or inability
+to use this software. This includes but is not limited to:
+
+- Identity theft or credential compromise
+- Unauthorized access to systems or data
+- Privacy violations or data breaches
+- Regulatory compliance failures or penalties
+- Business disruption or service outages
+- Legal consequences from unauthorized testing
+- Financial losses from security incidents
+
+INDEMNIFICATION:
+
+By using this software, you agree to indemnify and hold harmless the authors,
+contributors, and distributors from any claims, damages, losses, or expenses
+arising from your use of the software, including but not limited to:
+- Legal fees and court costs
+- Regulatory fines and penalties
+- Data breach notification and remediation costs
+- Business interruption losses
+- Reputational damage claims
+
+EXPORT CONTROLS AND INTERNATIONAL TRADE:
+
+This software may contain cryptographic software and may be subject to export
+controls under applicable laws and regulations, including:
+- U.S. Export Administration Regulations (EAR)
+- International Traffic in Arms Regulations (ITAR)
+- European Union Dual-Use Export Regulations
+- Other applicable international trade regulations
+
+Users are responsible for compliance with all applicable export control laws
+and regulations in their jurisdiction.
+
+RESPONSIBLE DISCLOSURE:
+
+Security vulnerabilities in identity and access management systems pose
+significant risks. If you discover vulnerabilities:
+
+1. Do not publicly disclose vulnerabilities before they are patched
+2. Contact the project maintainers privately through designated channels
+3. Provide detailed technical information about the vulnerability
+4. Allow reasonable time for fixes before any public disclosure
+5. Follow coordinated vulnerability disclosure practices
+6. Consider the impact on users and organizations when timing disclosure
+
+PROFESSIONAL AND ETHICAL STANDARDS:
+
+Users of this software are expected to adhere to professional and ethical
+standards including:
+- Respect for privacy and confidentiality
+- Honest and transparent security research
+- Responsible vulnerability disclosure
+- Compliance with applicable laws and regulations
+- Professional codes of conduct and ethics
+
+ACKNOWLEDGMENTS AND ATTRIBUTIONS:
+
+This project builds upon open-source technologies and standards developed by:
+
+- **Directory Services**: OpenLDAP, FreeIPA, Samba Active Directory
+- **SSO Protocols**: OASIS SAML, OAuth Working Group, OpenID Foundation  
+- **Authentication**: FIDO Alliance, W3C WebAuthn, IETF RFC specifications
+- **Monitoring**: Prometheus, Grafana, Elastic Stack
+- **Containerization**: Docker, Kubernetes communities
+
+All trademarks, service marks, and trade names referenced are the property
+of their respective owners.
+
+UPDATES AND MODIFICATIONS:
+
+This license and associated notices may be updated periodically to reflect:
+- Changes in applicable laws and regulations
+- New security threats and considerations
+- Updated compliance requirements
+- Community feedback and best practices
+
+Users are responsible for reviewing the most current version of this license
+before using the software.
+
+DATA RETENTION AND DELETION:
+
+Identity management systems process and store personal data that may be
+subject to retention and deletion requirements:
+- Implement appropriate data retention policies
+- Provide mechanisms for data subject rights (access, rectification, erasure)
+- Ensure secure deletion of personal data when required
+- Maintain audit trails for data processing activities
+- Regular review and cleanup of unused identity data
+
+INCIDENT RESPONSE AND BREACH NOTIFICATION:
+
+In the event of a security incident involving identity data:
+- Implement comprehensive incident response procedures
+- Notify affected individuals and authorities as required by law
+- Document the incident and response actions taken
+- Conduct post-incident analysis and improvement
+- Update security controls based on lessons learned
+
+TRAINING AND AWARENESS:
+
+Organizations deploying this software should:
+- Provide comprehensive training on identity security best practices
+- Maintain awareness of emerging threats and vulnerabilities
+- Regular security awareness training for all users
+- Specialized training for privileged users and administrators
+- Document and maintain security procedures and protocols
+
+By using this software, you acknowledge that you have read, understood, and
+agree to be bound by the terms of this license and all associated notices
+and disclaimers.
+
+===============================================================================
+                              END OF LICENSE
+===============================================================================

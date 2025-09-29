@@ -1,0 +1,33 @@
+# DevSecOps Dashboard Requirements
+# Web framework et extensions
+flask==2.3.3
+flask-cors==4.0.0
+flask-socketio==5.3.6
+
+# WebSocket support
+python-socketio==5.8.0
+eventlet==0.33.3
+
+# Graphiques et visualisation
+plotly==5.17.0
+
+# Base de données et ORM
+sqlite3  # Built-in Python
+
+# Monitoring et métriques
+psutil==5.9.6
+prometheus-client==0.18.0  # Optional
+influxdb-client==1.38.0   # Optional
+
+# Utilitaires
+pyyaml==6.0.1
+python-dateutil==2.8.2
+
+# Sécurité
+werkzeug==2.3.7
+cryptography==41.0.7
+
+# Tests et développement
+pytest==7.4.3
+pytest-flask==1.3.0
+pytest-cov==4.1.0

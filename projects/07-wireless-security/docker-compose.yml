@@ -1,0 +1,775 @@
+version: '3.8'
+
+# WiFi Security & WPA3 Implementation Lab Environment
+# Comprehensive wireless security testing and validation platform
+
+services:
+
+  # ============================================================================
+  # Authentication Infrastructure
+  # ============================================================================
+
+  wifi-radius-server:
+    image: freeradius/freeradius-server:3.2-alpine
+    container_name: wifi-radius-server
+    hostname: radius.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.1.10
+    ports:
+      - "1812:1812/udp"  # RADIUS Authentication
+      - "1813:1813/udp"  # RADIUS Accounting
+      - "18120:18120"    # RADIUS Status Server
+    volumes:
+      - ./src/configurations/freeradius:/etc/raddb
+      - ./certificates:/opt/certificates:ro
+      - ./logs/radius:/var/log/radius
+      - radius_data:/var/lib/radius
+    environment:
+      - RADIUS_SECRET=wireless-lab-secret
+      - RADIUS_DB_TYPE=files
+      - RADIUS_DEBUG=yes
+      - TLS_ENABLED=yes
+      - EAP_ENABLED=yes
+    healthcheck:
+      test: ["CMD", "radiusd", "-X", "-f", "-l", "/dev/stdout"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
+      - "component=authentication"
+      - "service=radius"
+
+  wifi-ldap-server:
+    image: osixia/openldap:1.5.0
+    container_name: wifi-ldap-server
+    hostname: ldap.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.1.11
+    ports:
+      - "389:389"
+      - "636:636"
+    volumes:
+      - ./src/configurations/ldap:/container/service/slapd/assets/config/bootstrap/ldif/custom
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+    environment:
+      - LDAP_LOG_LEVEL=256
+      - LDAP_ORGANISATION=WiFi Security Lab
+      - LDAP_DOMAIN=wifilab.local
+      - LDAP_BASE_DN=dc=wifilab,dc=local
+      - LDAP_ADMIN_PASSWORD=admin123
+      - LDAP_CONFIG_PASSWORD=config123
+      - LDAP_RFC2307BIS_SCHEMA=false
+      - LDAP_BACKEND=mdb
+      - LDAP_TLS=true
+      - LDAP_TLS_CRT_FILENAME=ldap.crt
+      - LDAP_TLS_KEY_FILENAME=ldap.key
+      - LDAP_TLS_DH_PARAM_FILENAME=dhparam.pem
+      - LDAP_TLS_CA_CRT_FILENAME=ca.crt
+      - LDAP_TLS_ENFORCE=false
+      - LDAP_TLS_CIPHER_SUITE=SECURE256:-VERS-SSL3.0
+      - LDAP_TLS_VERIFY_CLIENT=never
+    command: --copy-service
+    restart: unless-stopped
+    labels:
+      - "component=authentication"
+      - "service=ldap"
+
+  wifi-certificate-authority:
+    image: alpine:latest
+    container_name: wifi-certificate-authority
+    hostname: ca.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.1.12
+    volumes:
+      - ./certificates:/opt/certificates
+      - ./src/scripts/security:/opt/scripts:ro
+    environment:
+      - CA_COMMON_NAME=WiFi Security Lab CA
+      - CA_ORGANIZATION=WiFi Security Lab
+      - CA_COUNTRY=US
+      - CERT_VALIDITY_DAYS=365
+    command: >
+      sh -c "
+      apk add --no-cache openssl &&
+      /opt/scripts/setup-ca.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=authentication"
+      - "service=certificate-authority"
+
+  # ============================================================================
+  # Wireless Infrastructure
+  # ============================================================================
+
+  wifi-access-point-1:
+    image: kalilinux/kali-rolling:latest
+    container_name: wifi-access-point-1
+    hostname: ap01.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.2.10
+    ports:
+      - "8080:80"  # Management interface
+    volumes:
+      - ./src/configurations/hostapd:/etc/hostapd
+      - ./certificates:/opt/certificates:ro
+      - ./logs/hostapd:/var/log/hostapd
+    environment:
+      - AP_SSID=CorpWiFi-Secure
+      - AP_INTERFACE=wlan0
+      - AP_DRIVER=nl80211
+      - AP_CHANNEL=6
+      - AP_COUNTRY_CODE=US
+      - WPA3_ENABLED=yes
+      - EAP_ENABLED=yes
+      - RADIUS_SERVER=172.30.1.10
+      - RADIUS_SECRET=wireless-lab-secret
+      - VLAN_ENABLED=yes
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: >
+      bash -c "
+      apt-get update && 
+      apt-get install -y hostapd dnsmasq bridge-utils iw wireless-tools &&
+      /etc/hostapd/setup-ap.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=wireless-infrastructure"
+      - "service=access-point"
+      - "ap-role=enterprise"
+
+  wifi-access-point-2:
+    image: kalilinux/kali-rolling:latest
+    container_name: wifi-access-point-2
+    hostname: ap02.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.2.11
+    ports:
+      - "8081:80"  # Management interface
+    volumes:
+      - ./src/configurations/hostapd:/etc/hostapd
+      - ./certificates:/opt/certificates:ro
+      - ./logs/hostapd:/var/log/hostapd
+    environment:
+      - AP_SSID=Guest-WiFi
+      - AP_INTERFACE=wlan0
+      - AP_DRIVER=nl80211
+      - AP_CHANNEL=11
+      - AP_COUNTRY_CODE=US
+      - WPA3_ENABLED=yes
+      - EAP_ENABLED=no
+      - GUEST_NETWORK=yes
+      - VLAN_ID=200
+      - CAPTIVE_PORTAL=yes
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: >
+      bash -c "
+      apt-get update && 
+      apt-get install -y hostapd dnsmasq bridge-utils iw wireless-tools &&
+      /etc/hostapd/setup-ap.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=wireless-infrastructure"
+      - "service=access-point"
+      - "ap-role=guest"
+
+  wifi-controller:
+    image: ubuntu:22.04
+    container_name: wifi-controller
+    hostname: wlc.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.2.20
+    ports:
+      - "8443:8443"  # HTTPS Management
+      - "8080:8080"  # HTTP Management
+    volumes:
+      - ./src/configurations/network:/opt/config
+      - ./logs/controller:/var/log/controller
+      - controller_data:/var/lib/controller
+    environment:
+      - WLC_MODE=standalone
+      - MANAGEMENT_VLAN=100
+      - GUEST_VLAN=200
+      - IOT_VLAN=300
+      - RADIUS_SERVER_PRIMARY=172.30.1.10
+      - RADIUS_SECRET=wireless-lab-secret
+      - MONITORING_ENABLED=yes
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y bridge-utils vlan iproute2 iptables &&
+      /opt/config/setup-controller.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=wireless-infrastructure"
+      - "service=controller"
+
+  # ============================================================================
+  # Security Monitoring & Detection
+  # ============================================================================
+
+  wifi-wids:
+    image: kalilinux/kali-rolling:latest
+    container_name: wifi-wids
+    hostname: wids.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.3.10
+    ports:
+      - "2501:2501"  # Kismet Web UI
+      - "3501:3501"  # Kismet Remote
+    volumes:
+      - ./monitoring/wids-wips/kismet-config:/etc/kismet
+      - ./logs/wids:/var/log/kismet
+      - ./tools/analysis:/opt/tools
+      - wids_data:/var/lib/kismet
+    environment:
+      - KISMET_ENABLE_LOGGING=true
+      - KISMET_LOG_LEVEL=info
+      - KISMET_WEBUI_ENABLED=true
+      - KISMET_GPS_ENABLED=false
+      - DETECTION_MODE=active
+      - ROGUE_AP_DETECTION=enabled
+      - EVIL_TWIN_DETECTION=enabled
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y kismet aircrack-ng wireless-tools python3 python3-pip &&
+      pip3 install scapy netaddr &&
+      /opt/tools/setup-wids.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=security"
+      - "service=wids"
+
+  wifi-wips:
+    image: kalilinux/kali-rolling:latest
+    container_name: wifi-wips
+    hostname: wips.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.3.11
+    volumes:
+      - ./monitoring/wids-wips/suricata-wireless:/etc/suricata
+      - ./logs/wips:/var/log/suricata
+      - ./tools/analysis:/opt/tools
+    environment:
+      - SURICATA_INTERFACE=wlan0
+      - SURICATA_HOME_NET=172.30.0.0/16
+      - SURICATA_EXTERNAL_NET=any
+      - IPS_MODE=yes
+      - WIRELESS_RULES_ENABLED=yes
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y suricata python3 python3-pip &&
+      pip3 install suricata-update &&
+      /opt/tools/setup-wips.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=security"
+      - "service=wips"
+
+  wifi-nac:
+    image: ubuntu:22.04
+    container_name: wifi-nac
+    hostname: nac.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.3.20
+    ports:
+      - "8888:8888"  # NAC Management
+    volumes:
+      - ./src/policies:/opt/policies
+      - ./logs/nac:/var/log/nac
+      - nac_data:/var/lib/nac
+    environment:
+      - NAC_MODE=enforcement
+      - DEVICE_PROFILING=enabled
+      - COMPLIANCE_CHECKING=enabled
+      - QUARANTINE_VLAN=999
+      - RADIUS_INTEGRATION=enabled
+      - RADIUS_SERVER=172.30.1.10
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y python3 python3-pip python3-flask &&
+      pip3 install flask-sqlalchemy requests netaddr &&
+      /opt/policies/setup-nac.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=security"
+      - "service=nac"
+
+  # ============================================================================
+  # Monitoring & Analytics Platform
+  # ============================================================================
+
+  wifi-monitoring:
+    image: prom/prometheus:latest
+    container_name: wifi-monitoring
+    hostname: monitoring.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.4.10
+    ports:
+      - "9090:9090"  # Prometheus Web UI
+    volumes:
+      - ./infrastructure/monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=metrics"
+
+  wifi-grafana:
+    image: grafana/grafana:latest
+    container_name: wifi-grafana
+    hostname: grafana.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.4.11
+    ports:
+      - "3000:3000"  # Grafana Web UI
+    volumes:
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-worldmap-panel,grafana-piechart-panel
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=visualization"
+
+  wifi-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: wifi-elasticsearch
+    hostname: elasticsearch.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.4.20
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - node.name=wifi-elasticsearch
+      - cluster.name=wifi-security-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=search-analytics"
+
+  wifi-logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: wifi-logstash
+    hostname: logstash.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.4.21
+    ports:
+      - "5044:5044"  # Beats input
+      - "5000:5000/tcp"  # TCP input
+      - "5000:5000/udp"  # UDP input
+      - "9600:9600"  # Logstash monitoring
+    volumes:
+      - ./infrastructure/monitoring/elk/logstash:/usr/share/logstash/pipeline
+      - ./logs:/opt/logs:ro
+    environment:
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+    depends_on:
+      - wifi-elasticsearch
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=log-processing"
+
+  wifi-kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: wifi-kibana
+    hostname: kibana.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.4.22
+    ports:
+      - "5601:5601"  # Kibana Web UI
+    volumes:
+      - kibana_data:/usr/share/kibana/data
+    environment:
+      - ELASTICSEARCH_HOSTS=http://wifi-elasticsearch:9200
+      - SERVER_NAME=kibana.wifilab.local
+    depends_on:
+      - wifi-elasticsearch
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=log-visualization"
+
+  # ============================================================================
+  # Test Clients & Penetration Testing
+  # ============================================================================
+
+  wifi-test-client:
+    image: kalilinux/kali-rolling:latest
+    container_name: wifi-test-client
+    hostname: testclient.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.5.10
+    volumes:
+      - ./tests:/opt/tests
+      - ./certificates:/opt/certificates:ro
+      - ./tools:/opt/tools
+      - ./examples:/opt/examples:ro
+    environment:
+      - CLIENT_MODE=testing
+      - WPA_SUPPLICANT_DEBUG=yes
+      - EAP_TESTING_ENABLED=yes
+      - COMPLIANCE_TESTING=yes
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y wpasupplicant wireless-tools iw python3 python3-pip curl wget &&
+      pip3 install scapy netaddr requests pytest &&
+      /opt/tests/setup-test-client.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=testing"
+      - "service=client"
+
+  wifi-pentest:
+    image: kalilinux/kali-rolling:latest
+    container_name: wifi-pentest
+    hostname: pentest.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.5.20
+    volumes:
+      - ./tools/pentest:/opt/pentest
+      - ./tests/penetration:/opt/tests
+      - ./examples/scenarios/attack-simulations:/opt/scenarios:ro
+    environment:
+      - PENTEST_MODE=authorized
+      - TARGET_NETWORKS=CorpWiFi-Secure,Guest-WiFi
+      - ATTACK_SIMULATION=yes
+      - REPORT_GENERATION=yes
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y aircrack-ng reaver pixiewps hostapd-wpe wifite hashcat john python3 python3-pip &&
+      pip3 install scapy netaddr wifiphisher social-engineer-toolkit &&
+      /opt/pentest/setup-pentest-tools.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=testing"
+      - "service=penetration-testing"
+
+  wifi-client-simulator:
+    image: ubuntu:22.04
+    container_name: wifi-client-simulator
+    hostname: clientsim.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.5.30
+    volumes:
+      - ./tools/automation:/opt/automation
+      - ./certificates:/opt/certificates:ro
+    environment:
+      - SIMULATION_MODE=enabled
+      - CLIENT_COUNT=50
+      - SIMULATION_DURATION=3600
+      - TRAFFIC_GENERATION=yes
+      - DEVICE_TYPES=laptop,smartphone,tablet,iot
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y python3 python3-pip wpasupplicant wireless-tools &&
+      pip3 install scapy requests threading multiprocessing &&
+      /opt/automation/setup-client-simulator.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=testing"
+      - "service=client-simulation"
+
+  # ============================================================================
+  # Guest Portal & Captive Portal
+  # ============================================================================
+
+  wifi-captive-portal:
+    image: nginx:alpine
+    container_name: wifi-captive-portal
+    hostname: captive.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.6.10
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./src/configurations/captive-portal:/usr/share/nginx/html
+      - ./certificates:/opt/certificates:ro
+    environment:
+      - PORTAL_MODE=guest
+      - AUTHENTICATION_METHOD=voucher
+      - SESSION_TIMEOUT=3600
+      - BANDWIDTH_LIMIT=10M
+      - CONTENT_FILTERING=enabled
+    restart: unless-stopped
+    labels:
+      - "component=guest-services"
+      - "service=captive-portal"
+
+  # ============================================================================
+  # Network Services
+  # ============================================================================
+
+  wifi-dhcp-server:
+    image: networkboot/dhcpd:latest
+    container_name: wifi-dhcp-server
+    hostname: dhcp.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.7.10
+    volumes:
+      - ./src/configurations/network/dhcpd.conf:/etc/dhcp/dhcpd.conf:ro
+    environment:
+      - INTERFACES=eth0
+    restart: unless-stopped
+    labels:
+      - "component=network-services"
+      - "service=dhcp"
+
+  wifi-dns-server:
+    image: coredns/coredns:latest
+    container_name: wifi-dns-server
+    hostname: dns.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.7.11
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./src/configurations/network/Corefile:/etc/coredns/Corefile:ro
+    command: -conf /etc/coredns/Corefile
+    restart: unless-stopped
+    labels:
+      - "component=network-services"
+      - "service=dns"
+
+  # ============================================================================
+  # Management & Reporting
+  # ============================================================================
+
+  wifi-reporting:
+    image: python:3.11-slim
+    container_name: wifi-reporting
+    hostname: reporting.wifilab.local
+    networks:
+      wireless-security-net:
+        ipv4_address: 172.30.8.10
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./monitoring/reporting:/app
+      - ./logs:/opt/logs:ro
+      - ./examples/reports:/opt/templates:ro
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - REPORT_GENERATION=automated
+      - COMPLIANCE_FRAMEWORKS=nist,pci-dss,hipaa
+    working_dir: /app
+    command: >
+      bash -c "
+      pip install flask jinja2 pdfkit matplotlib plotly pandas &&
+      python app.py
+      "
+    restart: unless-stopped
+    labels:
+      - "component=management"
+      - "service=reporting"
+
+# ============================================================================
+# Networks Configuration
+# ============================================================================
+
+networks:
+  wireless-security-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1
+    driver_opts:
+      com.docker.network.bridge.name: wifi-lab-br
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
+      com.docker.network.driver.mtu: "1500"
+
+# ============================================================================
+# Volumes Configuration
+# ============================================================================
+
+volumes:
+  # Authentication data
+  radius_data:
+    driver: local
+    labels:
+      - "component=authentication"
+  ldap_data:
+    driver: local
+    labels:
+      - "component=authentication"
+  ldap_config:
+    driver: local
+    labels:
+      - "component=authentication"
+
+  # Wireless infrastructure data
+  controller_data:
+    driver: local
+    labels:
+      - "component=wireless-infrastructure"
+
+  # Security monitoring data
+  wids_data:
+    driver: local
+    labels:
+      - "component=security"
+  nac_data:
+    driver: local
+    labels:
+      - "component=security"
+
+  # Monitoring platform data
+  prometheus_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+  grafana_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+  elasticsearch_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+  kibana_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+
+# ============================================================================
+# Health Checks and Monitoring
+# ============================================================================
+
+x-healthcheck-common: &healthcheck-common
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+
+x-restart-policy: &restart-policy
+  restart_policy:
+    condition: unless-stopped
+    delay: 5s
+    max_attempts: 3
+    window: 120s
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "100m"
+    max-file: "5"
+    labels: "component,service"

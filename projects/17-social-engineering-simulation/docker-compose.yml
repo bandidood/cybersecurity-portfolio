@@ -1,0 +1,273 @@
+# ============================================================================
+# Docker Compose - Social Engineering Simulation Platform
+# ============================================================================
+# Orchestration complète des services nécessaires pour la simulation
+# d'ingénierie sociale, incluant GoPhish, base de données et services web.
+#
+# Author: Cybersecurity Portfolio
+# Version: 1.0.0
+# Last Updated: January 28, 2024
+# ============================================================================
+
+version: '3.8'
+
+# Définition des réseaux
+networks:
+  social-eng-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+# Définition des volumes
+volumes:
+  postgres-data:
+  redis-data:
+  gophish-config:
+  campaign-data:
+
+services:
+
+  # ================================================================
+  # BASE DE DONNÉES PRINCIPALE
+  # ================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: social-eng-postgres
+    environment:
+      POSTGRES_DB: social_engineering
+      POSTGRES_USER: social_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U social_admin -d social_engineering"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ================================================================
+  # CACHE REDIS
+  # ================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: social-eng-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_secret}
+    volumes:
+      - redis-data:/data
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.11
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ================================================================
+  # GOPHISH PHISHING PLATFORM
+  # ================================================================
+  gophish:
+    image: gophish/gophish:latest
+    container_name: social-eng-gophish
+    environment:
+      GOPHISH_INITIAL_ADMIN_PASSWORD: ${GOPHISH_PASSWORD:-admin_password}
+    volumes:
+      - gophish-config:/opt/gophish/config
+      - campaign-data:/opt/gophish/static/endpoint
+      - ./templates/email-templates:/opt/gophish/templates:ro
+      - ./templates/landing-pages:/opt/gophish/static/landing:ro
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.20
+    ports:
+      - "3333:3333"  # Admin panel
+      - "8080:8080"  # Phishing server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================================================
+  # APPLICATION PRINCIPALE
+  # ================================================================
+  social-eng-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: social-eng-app
+    environment:
+      - DATABASE_URL=postgresql://social_admin:${DB_PASSWORD:-secure_password}@postgres:5432/social_engineering
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+      - GOPHISH_URL=http://gophish:3333
+      - GOPHISH_API_KEY=${GOPHISH_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key}
+      - ENVIRONMENT=docker
+    volumes:
+      - ./src:/app/src:ro
+      - ./campaigns:/app/campaigns
+      - ./templates:/app/templates:ro
+      - ./reports:/app/reports
+      - ./output:/app/output
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.30
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      gophish:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================================================
+  # DASHBOARD ANALYTICS
+  # ================================================================
+  analytics-dashboard:
+    build:
+      context: ./tools/metrics-dashboard
+      dockerfile: Dockerfile
+    container_name: social-eng-analytics
+    environment:
+      - DATABASE_URL=postgresql://social_admin:${DB_PASSWORD:-secure_password}@postgres:5432/social_engineering
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+    volumes:
+      - ./reports:/app/reports:ro
+      - ./output:/app/output:ro
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.40
+    ports:
+      - "8090:8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ================================================================
+  # NGINX REVERSE PROXY
+  # ================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: social-eng-nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/ssl:/etc/nginx/ssl:ro
+      - ./templates/landing-pages:/var/www/html/landing:ro
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.50
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - social-eng-app
+      - gophish
+      - analytics-dashboard
+    restart: unless-stopped
+
+  # ================================================================
+  # MONITORING ET LOGGING
+  # ================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: social-eng-prometheus
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.60
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: social-eng-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.61
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ================================================================
+  # SERVICES UTILITAIRES
+  # ================================================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: social-eng-mailhog
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.70
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    restart: unless-stopped
+
+  # Worker pour tâches asynchrones
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: social-eng-worker
+    command: celery -A src.tasks.celery worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://social_admin:${DB_PASSWORD:-secure_password}@postgres:5432/social_engineering
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379/0
+    volumes:
+      - ./src:/app/src:ro
+      - ./campaigns:/app/campaigns
+      - ./output:/app/output
+    networks:
+      social-eng-net:
+        ipv4_address: 172.20.0.80
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped

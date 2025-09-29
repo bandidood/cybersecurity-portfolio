@@ -1,0 +1,87 @@
+# NLP Models Dependencies for AI-Powered Cybersecurity Platform
+# Security Log Analysis & Threat Intelligence Processing
+
+# Core ML and NLP libraries
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+scipy==1.11.1
+
+# Natural Language Processing
+nltk==3.8.1
+spacy==3.6.1
+textblob==0.17.1
+
+# Advanced NLP and Transformers
+transformers==4.33.2
+torch==2.0.1
+sentence-transformers==2.2.2
+tokenizers==0.13.3
+huggingface-hub==0.16.4
+
+# Text processing and feature extraction
+gensim==4.3.1
+wordcloud==1.9.2
+
+# Model persistence and serialization
+joblib==1.3.2
+pickle5==0.0.12
+
+# Data manipulation and analysis
+matplotlib==3.7.2
+seaborn==0.12.2
+plotly==5.15.0
+
+# Regular expressions and pattern matching
+regex==2023.8.8
+
+# Progress bars and logging
+tqdm==4.65.0
+
+# Date and time handling
+python-dateutil==2.8.2
+
+# Configuration and utilities
+pyyaml==6.0.1
+python-dotenv==1.0.0
+
+# Optional: SpaCy English model (install separately)
+# python -m spacy download en_core_web_sm
+
+# Optional: GPU acceleration (uncomment if needed)
+# torch-audio==2.0.1
+# torch-vision==0.15.1
+# cupy-cuda11x==12.2.0
+
+# Development and testing
+pytest==7.4.0
+pytest-cov==4.1.0
+
+# Documentation
+sphinx==7.1.2
+sphinx-rtd-theme==1.3.0
+
+# Jupyter notebooks (for analysis and prototyping)
+jupyter==1.0.0
+ipykernel==6.25.0
+nbconvert==7.7.3
+
+# Additional security-specific libraries
+cryptography==41.0.3
+hashlib2==1.0.0
+
+# Network analysis (for IOC validation)
+ipaddress==1.0.23
+requests==2.31.0
+urllib3==2.0.4
+
+# Optional: Advanced clustering and dimensionality reduction
+umap-learn==0.5.3
+hdbscan==0.8.33
+
+# Optional: Time series analysis (for log trend analysis)
+statsmodels==0.14.0
+
+# Memory profiling and optimization
+memory-profiler==0.61.0
+psutil==5.9.5

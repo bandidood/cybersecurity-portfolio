@@ -1,0 +1,216 @@
+Licence MIT avec Dispositions Spéciales pour Criminalistique Numérique
+
+Copyright (c) 2024 Projet Portfolio Cybersécurité
+
+La permission est accordée gratuitement à toute personne obtenant une copie
+de ce logiciel et des fichiers de documentation associés (le "Logiciel"), de traiter
+dans le Logiciel sans restriction, y compris sans limitation les droits
+d'utiliser, copier, modifier, fusionner, publier, distribuer, sous-licencier, et/ou vendre
+des copies du Logiciel, et de permettre aux personnes à qui le Logiciel est
+fourni de le faire, sous réserve des conditions suivantes :
+
+L'avis de copyright ci-dessus et cet avis d'autorisation doivent être inclus dans toutes
+les copies ou parties substantielles du Logiciel.
+
+CLAUSES SPÉCIALES POUR CRIMINALISTIQUE NUMÉRIQUE ET RÉPONSE AUX INCIDENTS :
+
+1. USAGE AUTORISÉ ET LÉGAL UNIQUEMENT
+   Ce framework de criminalistique numérique et de réponse aux incidents est destiné
+   EXCLUSIVEMENT aux investigations légales autorisées, à la réponse aux incidents
+   de sécurité légitime, et à des fins éducatives dans le domaine forensique.
+   Les utilisateurs DOIVENT obtenir toutes les autorisations légales appropriées
+   avant d'analyser des systèmes, données, ou preuves numériques.
+
+2. CONFORMITÉ JURIDIQUE RENFORCÉE
+   Les utilisateurs doivent se conformer strictement à :
+   - Toutes les lois locales, nationales et internationales sur la cybercriminalité
+   - Réglementations sur la protection des données (GDPR, CCPA, etc.)
+   - Lois sur l'interception légale et l'investigation numérique
+   - Standards professionnels de criminalistique numérique
+   - Codes de déontologie des enquêteurs numériques
+   - Procédures judiciaires et règles de preuve applicables
+
+3. CHAÎNE DE CUSTODY ET INTÉGRITÉ DES PREUVES
+   Toute utilisation de ce logiciel pour la collecte, l'analyse ou le traitement
+   de preuves numériques doit respecter :
+   - Procédures strictes de chaîne de custody (chain of custody)
+   - Standards d'intégrité des preuves (hachage cryptographique obligatoire)
+   - Documentation complète de toutes les actions forensiques
+   - Traçabilité et audit trail de tous les processus
+   - Stockage sécurisé et chiffrement des preuves numériques
+   - Procédures de sauvegarde et de préservation des preuves
+
+4. QUALIFICATION PROFESSIONNELLE REQUISE
+   Ce logiciel ne doit être utilisé que par :
+   - Enquêteurs numériques qualifiés et formés
+   - Professionnels certifiés en criminalistique numérique
+   - Experts judiciaires reconnus par les tribunaux
+   - Personnel autorisé des forces de l'ordre et agences de sécurité
+   - Praticiens ayant une formation appropriée en investigation numérique
+   - Professionnels sous supervision d'experts qualifiés
+
+5. STANDARDS FORENSIQUES OBLIGATOIRES
+   Toute utilisation doit respecter les standards internationaux :
+   - ISO/IEC 27037 : Identification, collecte et préservation
+   - ISO/IEC 27041 : Méthodes d'investigation appropriées
+   - ISO/IEC 27042 : Analyse et interprétation des preuves
+   - ISO/IEC 27043 : Principes et processus d'investigation
+   - NIST SP 800-86 : Guide d'intégration des techniques forensiques
+   - ACPO Guidelines : Bonnes pratiques d'investigation numérique
+
+6. ADMISSIBILITÉ DEVANT LES TRIBUNAUX
+   Pour garantir l'admissibilité des preuves en justice :
+   - Utiliser uniquement des méthodes forensiques reconnues
+   - Maintenir la documentation complète de tous les processus
+   - Respecter les règles de preuve locales et internationales
+   - Être préparé à témoigner en tant qu'expert si nécessaire
+   - Conserver tous les logs et métadonnées d'analyse
+   - Suivre les procédures de disclosure et d'échange de preuves
+
+7. CONFIDENTIALITÉ ET PROTECTION DES DONNÉES
+   Les utilisateurs s'engagent à :
+   - Maintenir la confidentialité absolue des investigations
+   - Protéger toutes les données sensibles et personnelles
+   - Respecter la vie privée des personnes impliquées
+   - Anonymiser les données quand cela est possible et approprié
+   - Détruire de manière sécurisée les données après clôture des cas
+   - Ne pas divulguer d'informations d'investigation sans autorisation
+
+8. LIMITATIONS D'USAGE STRICTES
+   Ce logiciel NE DOIT PAS être utilisé pour :
+   - Investigations non autorisées ou illegales
+   - Espionnage ou surveillance non légale
+   - Accès non autorisé à des systèmes informatiques
+   - Violation de la vie privée sans base légale
+   - Activités de hacking malveillant
+   - Contournement de mesures de sécurité sans autorisation
+
+9. RESPONSABILITÉ DE L'ENQUÊTEUR
+   L'utilisateur accepte la pleine responsabilité pour :
+   - La légalité de ses actions d'investigation
+   - Le respect des droits des personnes impliquées
+   - L'exactitude et l'objectivité de ses analyses
+   - La présentation honnête et complète des résultats
+   - La formation continue et la mise à jour des compétences
+   - Le respect des délais légaux et procéduraux
+
+10. EXPERTISE ET TÉMOIGNAGE
+    Si appelé à témoigner comme expert :
+    - Présenter seulement des conclusions basées sur des preuves
+    - Reconnaître les limitations des méthodes utilisées
+    - Être transparent sur les outils et techniques employés
+    - Répondre honnêtement à toutes les questions
+    - Admettre les incertitudes et zones grises
+    - Respecter le principe du contradictoire
+
+11. FORMATION ET CERTIFICATION
+    Les utilisateurs doivent :
+    - Maintenir leurs compétences techniques à jour
+    - Participer régulièrement à des formations continues
+    - Obtenir et maintenir des certifications appropriées
+    - Suivre l'évolution des standards et bonnes pratiques
+    - Participer à des communautés professionnelles reconnues
+    - Documenter leur formation et expérience
+
+12. AUDIT ET CONTRÔLE QUALITÉ
+    Toute utilisation professionnelle doit inclure :
+    - Procédures de contrôle qualité des analyses
+    - Révision par des pairs quand possible
+    - Audit régulier des méthodes et outils utilisés
+    - Validation des résultats par des méthodes indépendantes
+    - Documentation des décisions et méthodologies
+    - Amélioration continue des processus
+
+13. INCIDENT RESPONSE ÉTHIQUE
+    Pour la réponse aux incidents :
+    - Minimiser l'impact sur les systèmes en production
+    - Préserver les preuves de manière appropriée
+    - Coordonner avec toutes les parties concernées
+    - Respecter les procédures d'escalade établies
+    - Documenter toutes les actions de réponse
+    - Protéger la réputation des organisations impliquées
+
+14. COOPÉRATION INTERNATIONALE
+    Reconnaître que la cybercriminalité est globale :
+    - Respecter les traités et accords internationaux
+    - Coopérer avec les autorités étrangères compétentes
+    - Comprendre les différences juridiques entre pays
+    - Faciliter l'entraide judiciaire quand approprié
+    - Respecter la souveraineté nationale en matière de preuves
+    - Suivre les protocoles diplomatiques établis
+
+LE LOGICIEL EST FOURNI "TEL QUEL", SANS GARANTIE D'AUCUNE SORTE, EXPRESSE OU
+IMPLICITE, Y COMPRIS MAIS SANS LIMITATION LES GARANTIES DE COMMERCIALISATION,
+D'ADÉQUATION À UN USAGE PARTICULIER ET DE NON-CONTREFAÇON. EN AUCUN CAS LES
+AUTEURS OU DÉTENTEURS DE COPYRIGHT NE SERONT RESPONSABLES POUR TOUTE
+RÉCLAMATION, DOMMAGES OU AUTRE RESPONSABILITÉ, QUE CE SOIT DANS UNE ACTION
+CONTRACTUELLE, DÉLICTUELLE OU AUTRE, DÉCOULANT DE, HORS DE OU EN CONNEXION
+AVEC LE LOGICIEL OU L'USAGE OU AUTRES TRANSACTIONS DANS LE LOGICIEL.
+
+DÉNI DE RESPONSABILITÉ SPÉCIALISÉS POUR FORENSICS :
+
+DÉNI DE RESPONSABILITÉ FORENSIQUE :
+Les auteurs et contributeurs déclinent toute responsabilité pour :
+- L'inadmissibilité de preuves collectées avec ces outils
+- Les erreurs d'analyse ou d'interprétation des résultats
+- Les conséquences légales d'investigations inappropriées
+- Les violations de procédures forensiques ou juridiques
+- Les atteintes à la vie privée résultant d'un usage incorrect
+- Les pertes de données ou corruption de preuves
+
+DÉNI DE RESPONSABILITÉ LÉGAL RENFORCÉ :
+Ce framework ne constitue PAS un conseil juridique. Les utilisateurs doivent :
+- Consulter des avocats spécialisés en droit numérique
+- Vérifier la conformité avec les lois locales
+- Obtenir des autorisations judiciaires appropriées
+- Respecter les procédures établies par leur juridiction
+- Assumer la pleine responsabilité de leurs actions
+
+DÉNI DE RESPONSABILITÉ TECHNIQUE :
+Bien que conçus selon les meilleures pratiques :
+- Ces outils peuvent contenir des erreurs ou limitations
+- Les résultats doivent être validés par des méthodes indépendantes
+- L'évolution technologique peut rendre certaines techniques obsolètes
+- La fiabilité des résultats dépend de la compétence de l'utilisateur
+- Aucune garantie n'est donnée sur l'exactitude des analyses
+
+DÉNI DE RESPONSABILITÉ PROFESSIONNEL :
+L'utilisation de ces outils ne confère pas :
+- Une qualification d'expert automatique
+- Une reconnaissance judiciaire de compétence
+- Une certification professionnelle
+- Une habilitation à témoigner comme expert
+- Une autorisation d'investigation légale
+
+AVIS DE FORMATION OBLIGATOIRE :
+L'utilisation effective de ce framework nécessite :
+- Une formation approfondie en criminalistique numérique
+- Une compréhension des aspects juridiques et procéduraux
+- Une expérience pratique sous supervision d'experts
+- Une mise à jour continue des connaissances
+- Une certification par des organismes reconnus
+
+AVIS DE CONTRÔLE D'EXPORTATION :
+Ce logiciel peut contenir des fonctionnalités soumises aux réglementations
+d'exportation. Les utilisateurs sont responsables de vérifier et respecter
+toutes les restrictions d'exportation applicables dans leur juridiction.
+
+CLAUSE DE RÉVISION PÉRIODIQUE :
+Cette licence doit être révisée périodiquement pour s'assurer qu'elle reste
+conforme aux évolutions légales et techniques du domaine forensique.
+
+En utilisant ce logiciel, vous reconnaissez avoir lu, compris, et accepté
+d'être lié par toutes ces conditions spécialisées. Vous confirmez également
+avoir les qualifications, autorisations et formations nécessaires pour
+utiliser ces outils forensiques de manière légale et professionnelle.
+
+Pour questions spécialisées sur cette licence, l'usage forensique, ou les
+aspects juridiques, veuillez contacter : forensics@cybersecurity-portfolio.dev
+
+Pour formation professionnelle et certification :
+training@cybersecurity-portfolio.dev
+
+---
+
+Dernière mise à jour : 28 janvier 2024
+Version de la licence : 1.0 Forensics Specialized

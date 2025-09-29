@@ -1,0 +1,382 @@
+version: '3.8'
+
+# Enterprise VPN Management System - Lab Environment
+# Docker Compose configuration for development and testing
+
+services:
+  # OpenVPN Server
+  openvpn-server:
+    build:
+      context: .
+      dockerfile: src/openvpn/Dockerfile
+    container_name: vpn-openvpn-server
+    ports:
+      - "1194:1194/udp"    # OpenVPN UDP
+      - "1195:1195/tcp"    # OpenVPN TCP
+    networks:
+      - vpn-management
+      - vpn-internal
+    volumes:
+      - ./configs/openvpn:/etc/openvpn
+      - ./configs/pki:/etc/openvpn/pki
+      - openvpn-data:/var/log/openvpn
+    environment:
+      - OPENVPN_SERVER_NAME=lab-server
+      - OPENVPN_NETWORK=10.8.0.0
+      - OPENVPN_NETMASK=255.255.255.0
+      - OPENVPN_DNS1=8.8.8.8
+      - OPENVPN_DNS2=8.8.4.4
+      - DEBUG_LEVEL=3
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -lun | grep :1194 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # IPSec/StrongSwan Server
+  ipsec-server:
+    build:
+      context: .
+      dockerfile: src/ipsec/Dockerfile
+    container_name: vpn-ipsec-server
+    ports:
+      - "500:500/udp"      # IKE
+      - "4500:4500/udp"    # NAT-T
+    networks:
+      - vpn-management
+      - vpn-internal
+    volumes:
+      - ./configs/ipsec:/etc/ipsec.d
+      - ./configs/strongswan:/etc/strongswan.d
+      - ./configs/pki:/etc/ipsec.d/certs
+      - ipsec-data:/var/log/strongswan
+    environment:
+      - STRONGSWAN_SERVER_NAME=lab-ipsec
+      - STRONGSWAN_NETWORK=10.9.0.0/24
+      - STRONGSWAN_DNS=8.8.8.8,8.8.4.4
+      - IKE_VERSION=2
+      - DEBUG_AUTH=2
+      - DEBUG_IKE=2
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ipsec status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Certificate Authority (CA) Server
+  certificate-authority:
+    build:
+      context: .
+      dockerfile: src/common/ca/Dockerfile
+    container_name: vpn-certificate-authority
+    ports:
+      - "8080:8080"        # CA Web Interface
+    networks:
+      - vpn-management
+    volumes:
+      - ./configs/pki:/opt/ca/pki
+      - ca-data:/opt/ca/data
+    environment:
+      - CA_NAME=VPN-Lab-CA
+      - CA_COUNTRY=US
+      - CA_STATE=California
+      - CA_CITY=San Francisco
+      - CA_ORG=VPN Lab
+      - CA_OU=Security Department
+      - CA_EMAIL=ca@vpnlab.local
+      - WEB_INTERFACE=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # RADIUS Authentication Server
+  radius-server:
+    image: freeradius/freeradius-server:3.0.25
+    container_name: vpn-radius-server
+    ports:
+      - "1812:1812/udp"    # Authentication
+      - "1813:1813/udp"    # Accounting
+    networks:
+      - vpn-management
+      - vpn-internal
+    volumes:
+      - ./configs/radius:/etc/freeradius
+      - radius-data:/var/log/freeradius
+    environment:
+      - RADIUS_SECRET=lab-shared-secret
+      - DB_HOST=radius-db
+      - DB_NAME=radius
+      - DB_USER=radius
+      - DB_PASSWORD=radius123
+    depends_on:
+      - radius-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "radtest test test localhost 0 testing123 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # RADIUS Database
+  radius-db:
+    image: mysql:8.0
+    container_name: vpn-radius-db
+    networks:
+      - vpn-management
+    volumes:
+      - ./configs/radius/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - radius-db-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=radius
+      - MYSQL_USER=radius
+      - MYSQL_PASSWORD=radius123
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # OpenVPN Client (for testing)
+  openvpn-client:
+    build:
+      context: .
+      dockerfile: src/openvpn/client/Dockerfile
+    container_name: vpn-openvpn-client
+    networks:
+      - vpn-external
+    volumes:
+      - ./configs/clients:/etc/openvpn/clients
+      - client-logs:/var/log/openvpn
+    environment:
+      - CLIENT_NAME=test-client
+      - OPENVPN_SERVER=openvpn-server
+      - OPENVPN_PORT=1194
+      - AUTO_CONNECT=false
+    depends_on:
+      - openvpn-server
+    profiles:
+      - testing
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+
+  # IPSec Client (for testing)
+  ipsec-client:
+    build:
+      context: .
+      dockerfile: src/ipsec/client/Dockerfile
+    container_name: vpn-ipsec-client
+    networks:
+      - vpn-external
+    volumes:
+      - ./configs/clients:/etc/ipsec.d/clients
+      - ipsec-client-logs:/var/log/strongswan
+    environment:
+      - CLIENT_NAME=test-ipsec-client
+      - IPSEC_SERVER=ipsec-server
+      - CLIENT_ID=test-client@vpnlab.local
+      - AUTO_CONNECT=false
+    depends_on:
+      - ipsec-server
+    profiles:
+      - testing
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+
+  # Load Balancer (HAProxy)
+  load-balancer:
+    image: haproxy:2.6-alpine
+    container_name: vpn-load-balancer
+    ports:
+      - "80:80"            # HTTP Management
+      - "443:443"          # HTTPS Management
+      - "8404:8404"        # HAProxy Stats
+      - "1194:1194/udp"    # OpenVPN Load Balanced
+      - "500:500/udp"      # IPSec Load Balanced
+    networks:
+      - vpn-management
+      - vpn-external
+    volumes:
+      - ./configs/haproxy:/usr/local/etc/haproxy
+    environment:
+      - HAPROXY_STATS_USER=admin
+      - HAPROXY_STATS_PASS=admin123
+    depends_on:
+      - openvpn-server
+      - ipsec-server
+    restart: unless-stopped
+    profiles:
+      - production
+
+  # Monitoring Stack - Prometheus
+  prometheus:
+    image: prom/prometheus:v2.40.0
+    container_name: vpn-prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - vpn-monitoring
+    volumes:
+      - ./configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/monitoring/rules:/etc/prometheus/rules
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    profiles:
+      - monitoring
+
+  # Monitoring Stack - Grafana
+  grafana:
+    image: grafana/grafana:9.3.0
+    container_name: vpn-grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - vpn-monitoring
+    volumes:
+      - ./configs/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./configs/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+  # Log Aggregation - Loki
+  loki:
+    image: grafana/loki:2.8.0
+    container_name: vpn-loki
+    ports:
+      - "3100:3100"
+    networks:
+      - vpn-monitoring
+    volumes:
+      - ./configs/monitoring/loki.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    profiles:
+      - monitoring
+
+  # Log Collection - Promtail
+  promtail:
+    image: grafana/promtail:2.8.0
+    container_name: vpn-promtail
+    networks:
+      - vpn-monitoring
+    volumes:
+      - ./configs/monitoring/promtail.yml:/etc/promtail/config.yml
+      - /var/log:/var/log:ro
+      - openvpn-data:/var/log/openvpn:ro
+      - ipsec-data:/var/log/strongswan:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    profiles:
+      - monitoring
+
+  # Network Tools Container
+  network-tools:
+    image: nicolaka/netshoot:latest
+    container_name: vpn-network-tools
+    networks:
+      - vpn-management
+      - vpn-internal
+      - vpn-external
+    volumes:
+      - ./tools:/tools
+    command: sleep infinity
+    profiles:
+      - debugging
+
+# Network Configuration
+networks:
+  # Management network for admin access
+  vpn-management:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+
+  # Internal network for VPN servers
+  vpn-internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+          gateway: 172.21.0.1
+
+  # External network simulation
+  vpn-external:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+          gateway: 172.22.0.1
+
+  # Monitoring network
+  vpn-monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.23.0.0/24
+          gateway: 172.23.0.1
+
+# Persistent Volumes
+volumes:
+  # VPN Server Data
+  openvpn-data:
+    driver: local
+  ipsec-data:
+    driver: local
+  
+  # Authentication Data
+  radius-data:
+    driver: local
+  radius-db-data:
+    driver: local
+  ca-data:
+    driver: local
+  
+  # Client Data
+  client-logs:
+    driver: local
+  ipsec-client-logs:
+    driver: local
+  
+  # Monitoring Data
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
+    driver: local

@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cybersecurity-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=info
+    volumes:
+      - ./backend:/app
+      - ./nlp_models:/app/nlp_models:ro
+      - backend_logs:/app/logs
+    networks:
+      - cybersecurity-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: cybersecurity-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+      - NODE_ENV=production
+    networks:
+      - cybersecurity-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Development Frontend (optional)
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: cybersecurity-frontend-dev
+    ports:
+      - "3001:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - cybersecurity-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7.2-alpine
+    container_name: cybersecurity-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cybersecurity-network
+    command: redis-server --appendonly yes --requirepass cybersecurity_redis_pass
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: cybersecurity-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - cybersecurity-network
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  backend_logs:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  cybersecurity-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

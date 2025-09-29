@@ -1,0 +1,721 @@
+version: '3.8'
+
+# Secure Network Design & Zero Trust Architecture - Lab Environment
+# Docker Compose configuration for network simulation and testing
+
+services:
+  # Core Network Infrastructure
+  
+  # Core Switch Layer
+  core-switch-1:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/core-switch/Dockerfile
+    container_name: secure-net-core-sw-1
+    hostname: core-sw-1
+    networks:
+      - management-network
+      - core-network
+      - backbone-network
+    volumes:
+      - ./src/configurations/cisco/core-switch-1.conf:/etc/frr/frr.conf
+      - ./logs/core-switch-1:/var/log/frr
+    environment:
+      - SWITCH_ID=core-sw-1
+      - VLAN_CONFIG=true
+      - STP_MODE=rapid-pvst
+      - MANAGEMENT_VLAN=10
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    restart: unless-stopped
+
+  core-switch-2:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/core-switch/Dockerfile
+    container_name: secure-net-core-sw-2
+    hostname: core-sw-2
+    networks:
+      - management-network
+      - core-network
+      - backbone-network
+    volumes:
+      - ./src/configurations/cisco/core-switch-2.conf:/etc/frr/frr.conf
+      - ./logs/core-switch-2:/var/log/frr
+    environment:
+      - SWITCH_ID=core-sw-2
+      - VLAN_CONFIG=true
+      - STP_MODE=rapid-pvst
+      - MANAGEMENT_VLAN=10
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    restart: unless-stopped
+
+  # Distribution Layer Switches
+  dist-switch-1:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/dist-switch/Dockerfile
+    container_name: secure-net-dist-sw-1
+    hostname: dist-sw-1
+    networks:
+      - management-network
+      - core-network
+      - distribution-network
+      - production-vlan
+      - development-vlan
+    volumes:
+      - ./src/configurations/cisco/dist-switch-1.conf:/etc/frr/frr.conf
+      - ./logs/dist-switch-1:/var/log/frr
+    environment:
+      - SWITCH_ID=dist-sw-1
+      - VLAN_CONFIG=true
+      - INTER_VLAN_ROUTING=true
+      - HSRP_GROUP=1
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+
+  dist-switch-2:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/dist-switch/Dockerfile
+    container_name: secure-net-dist-sw-2
+    hostname: dist-sw-2
+    networks:
+      - management-network
+      - core-network
+      - distribution-network
+      - user-vlan
+      - guest-vlan
+      - iot-vlan
+    volumes:
+      - ./src/configurations/cisco/dist-switch-2.conf:/etc/frr/frr.conf
+      - ./logs/dist-switch-2:/var/log/frr
+    environment:
+      - SWITCH_ID=dist-sw-2
+      - VLAN_CONFIG=true
+      - INTER_VLAN_ROUTING=true
+      - HSRP_GROUP=2
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+
+  # Access Layer Switches
+  access-switch-1:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/access-switch/Dockerfile
+    container_name: secure-net-access-sw-1
+    hostname: access-sw-1
+    networks:
+      - management-network
+      - distribution-network
+      - production-vlan
+      - development-vlan
+    volumes:
+      - ./src/configurations/cisco/access-switch-1.conf:/etc/frr/frr.conf
+      - ./logs/access-switch-1:/var/log/frr
+    environment:
+      - SWITCH_ID=access-sw-1
+      - PORT_SECURITY=true
+      - DOT1X_AUTH=true
+      - DHCP_SNOOPING=true
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  access-switch-2:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/access-switch/Dockerfile
+    container_name: secure-net-access-sw-2
+    hostname: access-sw-2
+    networks:
+      - management-network
+      - distribution-network
+      - user-vlan
+      - guest-vlan
+    volumes:
+      - ./src/configurations/cisco/access-switch-2.conf:/etc/frr/frr.conf
+      - ./logs/access-switch-2:/var/log/frr
+    environment:
+      - SWITCH_ID=access-sw-2
+      - PORT_SECURITY=true
+      - DOT1X_AUTH=true
+      - DHCP_SNOOPING=true
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  access-switch-3:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/access-switch/Dockerfile
+    container_name: secure-net-access-sw-3
+    hostname: access-sw-3
+    networks:
+      - management-network
+      - distribution-network
+      - iot-vlan
+      - security-vlan
+    volumes:
+      - ./src/configurations/cisco/access-switch-3.conf:/etc/frr/frr.conf
+      - ./logs/access-switch-3:/var/log/frr
+    environment:
+      - SWITCH_ID=access-sw-3
+      - PORT_SECURITY=true
+      - DOT1X_AUTH=true
+      - DHCP_SNOOPING=true
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  # Security Infrastructure
+  
+  # Next-Generation Firewall
+  ngfw-primary:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/ngfw/Dockerfile
+    container_name: secure-net-ngfw-primary
+    hostname: ngfw-primary
+    ports:
+      - "8443:8443"  # Management interface
+    networks:
+      - management-network
+      - dmz-network
+      - core-network
+      - internet-simulation
+    volumes:
+      - ./src/configurations/pfsense/ngfw-primary.conf:/usr/local/etc/config.xml
+      - ./src/policies/firewall-rules.conf:/usr/local/etc/firewall-rules.conf
+      - ./logs/ngfw-primary:/var/log/pfsense
+    environment:
+      - FIREWALL_MODE=transparent
+      - IPS_ENABLED=true
+      - DPI_ENABLED=true
+      - THREAT_INTELLIGENCE=true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.netfilter.nf_conntrack_max=262144
+    restart: unless-stopped
+
+  # Intrusion Detection/Prevention System
+  ids-ips-sensor:
+    image: jasonish/suricata:latest
+    container_name: secure-net-ids-ips
+    hostname: ids-ips-sensor
+    networks:
+      - management-network
+      - security-vlan
+      - production-vlan
+      - user-vlan
+    volumes:
+      - ./src/configurations/suricata/suricata.yaml:/etc/suricata/suricata.yaml
+      - ./src/policies/suricata-rules:/var/lib/suricata/rules
+      - ./logs/ids-ips:/var/log/suricata
+    environment:
+      - SURICATA_INTERFACE=eth1
+      - SURICATA_MODE=ips
+      - UPDATE_RULES=true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    restart: unless-stopped
+
+  # Zero Trust & Access Control
+  
+  # Zero Trust Controller
+  zero-trust-controller:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/zero-trust/Dockerfile
+    container_name: secure-net-zt-controller
+    hostname: zt-controller
+    ports:
+      - "9443:9443"  # Management API
+    networks:
+      - management-network
+      - core-network
+    volumes:
+      - ./src/configurations/zero-trust/zt-config.yaml:/etc/zt-controller/config.yaml
+      - ./src/policies/access-policies.json:/etc/zt-controller/policies.json
+      - zero-trust-data:/var/lib/zt-controller
+    environment:
+      - ZT_MODE=controller
+      - POLICY_ENGINE=enabled
+      - CONTINUOUS_VERIFICATION=true
+      - RISK_ASSESSMENT=enabled
+    restart: unless-stopped
+
+  # Network Access Control (NAC)
+  nac-server:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/nac/Dockerfile
+    container_name: secure-net-nac
+    hostname: nac-server
+    ports:
+      - "1812:1812/udp"  # RADIUS Authentication
+      - "1813:1813/udp"  # RADIUS Accounting
+    networks:
+      - management-network
+      - security-vlan
+    volumes:
+      - ./src/configurations/freeradius/radiusd.conf:/etc/freeradius/radiusd.conf
+      - ./src/configurations/freeradius/clients.conf:/etc/freeradius/clients.conf
+      - ./logs/nac:/var/log/freeradius
+    environment:
+      - RADIUS_SECRET=secure-network-secret
+      - LDAP_INTEGRATION=true
+      - DEVICE_PROFILING=true
+      - DYNAMIC_VLAN=true
+    depends_on:
+      - ldap-server
+    restart: unless-stopped
+
+  # LDAP Directory Server
+  ldap-server:
+    image: osixia/openldap:1.5.0
+    container_name: secure-net-ldap
+    hostname: ldap-server
+    ports:
+      - "389:389"   # LDAP
+      - "636:636"   # LDAPS
+    networks:
+      - management-network
+      - security-vlan
+    volumes:
+      - ./src/configurations/ldap/ldap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/01-initial-setup.ldif
+      - ldap-data:/var/lib/ldap
+      - ldap-config:/etc/ldap/slapd.d
+    environment:
+      - LDAP_ORGANISATION=Secure Network Lab
+      - LDAP_DOMAIN=securenet.lab
+      - LDAP_ADMIN_PASSWORD=SecureNetAdmin123
+      - LDAP_TLS=true
+    restart: unless-stopped
+
+  # Monitoring & Visibility
+  
+  # Network Monitoring (LibreNMS)
+  network-monitoring:
+    image: librenms/librenms:latest
+    container_name: secure-net-monitoring
+    hostname: librenms
+    ports:
+      - "8080:8000"  # Web interface
+    networks:
+      - management-network
+      - security-vlan
+    volumes:
+      - ./src/configurations/librenms/config.php:/opt/librenms/config.php
+      - librenms-data:/opt/librenms
+      - ./logs/librenms:/opt/librenms/logs
+    environment:
+      - APP_KEY=base64:your-app-key-here
+      - DB_HOST=monitoring-db
+      - DB_DATABASE=librenms
+      - DB_USERNAME=librenms
+      - DB_PASSWORD=librenms-password
+      - SNMP_COMMUNITY=secure-community
+    depends_on:
+      - monitoring-db
+    restart: unless-stopped
+
+  # Monitoring Database
+  monitoring-db:
+    image: mariadb:10.9
+    container_name: secure-net-monitoring-db
+    hostname: monitoring-db
+    networks:
+      - management-network
+    volumes:
+      - monitoring-db-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root-password
+      - MYSQL_DATABASE=librenms
+      - MYSQL_USER=librenms
+      - MYSQL_PASSWORD=librenms-password
+    restart: unless-stopped
+
+  # Flow Analysis (nfcapd + nfdump)
+  flow-collector:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/flow-collector/Dockerfile
+    container_name: secure-net-flow-collector
+    hostname: flow-collector
+    ports:
+      - "9995:9995/udp"  # NetFlow/sFlow
+      - "6343:6343/udp"  # sFlow
+    networks:
+      - management-network
+      - security-vlan
+    volumes:
+      - flow-data:/var/lib/nfcapd
+      - ./logs/flow-collector:/var/log/nfcapd
+    environment:
+      - NETFLOW_PORT=9995
+      - SFLOW_PORT=6343
+      - FLOW_RETENTION=30
+    restart: unless-stopped
+
+  # SIEM Integration (ELK Stack)
+  
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    container_name: secure-net-elasticsearch
+    hostname: elasticsearch
+    networks:
+      - management-network
+      - security-vlan
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+      - ./src/configurations/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: unless-stopped
+
+  # Logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.5.0
+    container_name: secure-net-logstash
+    hostname: logstash
+    networks:
+      - management-network
+      - security-vlan
+    volumes:
+      - ./src/configurations/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./src/configurations/logstash/patterns:/usr/share/logstash/patterns
+    environment:
+      - "LS_JAVA_OPTS=-Xms512m -Xmx512m"
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  # Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.5.0
+    container_name: secure-net-kibana
+    hostname: kibana
+    ports:
+      - "5601:5601"
+    networks:
+      - management-network
+    volumes:
+      - ./src/configurations/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  # Simulated Network Endpoints
+  
+  # Production Server (VLAN 20)
+  prod-server-1:
+    image: nginx:alpine
+    container_name: secure-net-prod-server-1
+    hostname: prod-server-1
+    networks:
+      - production-vlan
+    volumes:
+      - ./examples/web-content:/usr/share/nginx/html
+    environment:
+      - VLAN_ID=20
+      - SERVER_ROLE=production
+    restart: unless-stopped
+
+  # Development Server (VLAN 30)
+  dev-server-1:
+    image: nginx:alpine
+    container_name: secure-net-dev-server-1
+    hostname: dev-server-1
+    networks:
+      - development-vlan
+    volumes:
+      - ./examples/web-content:/usr/share/nginx/html
+    environment:
+      - VLAN_ID=30
+      - SERVER_ROLE=development
+    restart: unless-stopped
+
+  # User Workstation (VLAN 40)
+  user-workstation-1:
+    image: ubuntu:22.04
+    container_name: secure-net-user-ws-1
+    hostname: user-ws-1
+    networks:
+      - user-vlan
+    volumes:
+      - ./tools:/tools
+    environment:
+      - VLAN_ID=40
+      - DEVICE_TYPE=workstation
+    command: sleep infinity
+    restart: unless-stopped
+
+  # Guest Device (VLAN 50)
+  guest-device-1:
+    image: alpine:latest
+    container_name: secure-net-guest-1
+    hostname: guest-1
+    networks:
+      - guest-vlan
+    environment:
+      - VLAN_ID=50
+      - DEVICE_TYPE=guest
+    command: sleep infinity
+    restart: unless-stopped
+
+  # IoT Device Simulator (VLAN 60)
+  iot-device-1:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/iot-simulator/Dockerfile
+    container_name: secure-net-iot-1
+    hostname: iot-device-1
+    networks:
+      - iot-vlan
+    environment:
+      - VLAN_ID=60
+      - DEVICE_TYPE=iot-sensor
+      - IOT_PROTOCOL=mqtt
+    restart: unless-stopped
+
+  # Network Testing & Validation Tools
+  
+  # Network Scanner & Validator
+  network-scanner:
+    build:
+      context: .
+      dockerfile: tools/network-scanner/Dockerfile
+    container_name: secure-net-scanner
+    hostname: network-scanner
+    networks:
+      - management-network
+      - security-vlan
+      - production-vlan
+      - development-vlan
+      - user-vlan
+      - guest-vlan
+      - iot-vlan
+    volumes:
+      - ./tools/network-scanner:/opt/scanner
+      - ./outputs:/outputs
+    environment:
+      - SCAN_PROFILES=network-discovery,security-audit,compliance-check
+    command: sleep infinity
+    restart: unless-stopped
+
+  # Traffic Generator
+  traffic-generator:
+    image: iperf3:alpine
+    container_name: secure-net-traffic-gen
+    hostname: traffic-generator
+    networks:
+      - management-network
+      - production-vlan
+      - development-vlan
+      - user-vlan
+    volumes:
+      - ./scripts/testing:/scripts
+    command: sleep infinity
+    restart: unless-stopped
+
+# Network Configuration
+networks:
+  # Management Network (VLAN 10) - 172.16.10.0/24
+  management-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.10.0/24
+          gateway: 172.16.10.1
+    labels:
+      - "vlan.id=10"
+      - "security.zone=management"
+
+  # Core Network Infrastructure
+  core-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.1.0/24
+          gateway: 172.16.1.1
+    labels:
+      - "network.tier=core"
+
+  backbone-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.2.0/24
+          gateway: 172.16.2.1
+    labels:
+      - "network.tier=backbone"
+
+  distribution-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.3.0/24
+          gateway: 172.16.3.1
+    labels:
+      - "network.tier=distribution"
+
+  # VLAN Networks
+  
+  # Production VLAN (20) - 172.16.20.0/24
+  production-vlan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.20.0/24
+          gateway: 172.16.20.1
+    labels:
+      - "vlan.id=20"
+      - "security.zone=production"
+      - "access.level=restricted"
+
+  # Development VLAN (30) - 172.16.30.0/24
+  development-vlan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.30.0/24
+          gateway: 172.16.30.1
+    labels:
+      - "vlan.id=30"
+      - "security.zone=development"
+      - "access.level=internal"
+
+  # User VLAN (40) - 172.16.40.0/24
+  user-vlan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.40.0/24
+          gateway: 172.16.40.1
+    labels:
+      - "vlan.id=40"
+      - "security.zone=users"
+      - "access.level=standard"
+
+  # Guest VLAN (50) - 172.16.50.0/24
+  guest-vlan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.50.0/24
+          gateway: 172.16.50.1
+    labels:
+      - "vlan.id=50"
+      - "security.zone=guest"
+      - "access.level=limited"
+
+  # IoT VLAN (60) - 172.16.60.0/24
+  iot-vlan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.60.0/24
+          gateway: 172.16.60.1
+    labels:
+      - "vlan.id=60"
+      - "security.zone=iot"
+      - "access.level=restricted"
+
+  # DMZ VLAN (70) - 172.16.70.0/24
+  dmz-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.70.0/24
+          gateway: 172.16.70.1
+    labels:
+      - "vlan.id=70"
+      - "security.zone=dmz"
+      - "access.level=public"
+
+  # Security VLAN (80) - 172.16.80.0/24
+  security-vlan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.80.0/24
+          gateway: 172.16.80.1
+    labels:
+      - "vlan.id=80"
+      - "security.zone=security"
+      - "access.level=admin"
+
+  # Internet Simulation
+  internet-simulation:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 203.0.113.0/24
+          gateway: 203.0.113.1
+    labels:
+      - "network.type=external"
+      - "security.zone=internet"
+
+# Persistent Volumes
+volumes:
+  # Zero Trust & Security
+  zero-trust-data:
+    driver: local
+  
+  # Authentication & Directory
+  ldap-data:
+    driver: local
+  ldap-config:
+    driver: local
+  
+  # Monitoring & Logging
+  librenms-data:
+    driver: local
+  monitoring-db-data:
+    driver: local
+  flow-data:
+    driver: local
+  
+  # SIEM Stack
+  elasticsearch-data:
+    driver: local
+
+# Service Discovery & Health Checks
+x-healthcheck-common: &healthcheck-common
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s

@@ -1,0 +1,851 @@
+version: '3.8'
+
+# Framework de Test de Sécurité Web - Configuration Docker Compose
+# Projet 13 : Environnement de laboratoire complet de test de sécurité des applications web
+# Version : 1.0.0
+
+networks:
+  websec-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+  vulnerable-apps-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16
+  monitoring-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.32.0.0/16
+  security-tools-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16
+  internal-network:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.34.0.0/16
+
+volumes:
+  postgresql_data:
+  mysql_data:
+  mongodb_data:
+  redis_data:
+  elasticsearch_data:
+  grafana_data:
+  prometheus_data:
+  sonarqube_data:
+  burp_data:
+  zap_data:
+  evidence_data:
+  reports_data:
+  jenkins_data:
+  vault_data:
+
+services:
+  # ===================================
+  # APPLICATIONS WEB VULNÉRABLES
+  # ===================================
+  
+  # OWASP Juice Shop - Application moderne vulnérable
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: websec-juice-shop
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=modern-web"
+      - "websec.owasp=juice-shop"
+      - "websec.description=Application moderne avec vulnérabilités OWASP Top 10"
+
+  # DVWA - Damn Vulnerable Web Application
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: websec-dvwa
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "8080:80"
+    environment:
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+      - MYSQL_ROOT_PASSWORD=toor
+      - RECAPTCHA_PRIV_KEY=""
+      - RECAPTCHA_PUB_KEY=""
+    depends_on:
+      - mysql-dvwa
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=php-web"
+      - "websec.description=Application PHP classique avec vulnérabilités web"
+
+  # Base de données pour DVWA
+  mysql-dvwa:
+    image: mysql:5.7
+    container_name: websec-mysql-dvwa
+    networks:
+      - internal-network
+    environment:
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+      - MYSQL_ROOT_PASSWORD=toor
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  # OWASP WebGoat - Plateforme d'apprentissage sécurité
+  webgoat:
+    image: webgoat/goatandwolf
+    container_name: websec-webgoat
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "8081:8080"    # WebGoat
+      - "9001:9090"    # WebWolf
+    environment:
+      - WEBGOAT_HOST=0.0.0.0
+      - WEBWOLF_HOST=0.0.0.0
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=education"
+      - "websec.description=Plateforme d'apprentissage sécurité OWASP"
+
+  # Mutillidae II - Application PHP vulnérable avancée
+  mutillidae:
+    image: citizenstig/nowasp
+    container_name: websec-mutillidae
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "8082:80"
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=php-web"
+      - "websec.description=Application PHP avec vulnérabilités multiples"
+
+  # bWAPP - Buggy Web Application
+  bwapp:
+    image: raesene/bwapp
+    container_name: websec-bwapp
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "8083:80"
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=php-web"
+      - "websec.description=Application avec plus de 100 vulnérabilités web"
+
+  # Vulnerable WordPress
+  wordpress-vulnerable:
+    image: wordpress:4.7.0
+    container_name: websec-wordpress-vulnerable
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "8084:80"
+    environment:
+      - WORDPRESS_DB_HOST=mysql-wordpress
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=wordpress
+    depends_on:
+      - mysql-wordpress
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=cms"
+      - "websec.description=WordPress version vulnérable pour tests"
+
+  # Base de données WordPress
+  mysql-wordpress:
+    image: mysql:5.7
+    container_name: websec-mysql-wordpress
+    networks:
+      - internal-network
+    environment:
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+      - MYSQL_ROOT_PASSWORD=toor
+    volumes:
+      - ./lab/wordpress-db:/var/lib/mysql
+    restart: unless-stopped
+
+  # API Vulnérable - Node.js
+  vulnerable-api:
+    image: matthamil/vulnerable-api
+    container_name: websec-vulnerable-api
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "8085:3000"
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=api"
+      - "websec.description=API REST vulnérable pour tests"
+
+  # OWASP Damn Vulnerable GraphQL Application
+  dvgql:
+    image: dolevf/dvgql
+    container_name: websec-dvgql
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "8086:5000"
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=graphql"
+      - "websec.description=API GraphQL vulnérable"
+
+  # ===================================
+  # OUTILS DE TEST DE SÉCURITÉ WEB
+  # ===================================
+  
+  # OWASP ZAP - Scanner de sécurité web
+  zap:
+    image: owasp/zap2docker-stable
+    container_name: websec-zap
+    networks:
+      - security-tools-network
+      - vulnerable-apps-network
+    ports:
+      - "8087:8080"    # Interface ZAP
+      - "8090:8090"    # API ZAP
+    environment:
+      - ZAP_PROXY=true
+    volumes:
+      - zap_data:/zap/wrk
+      - ./evidence/zap:/zap/reports
+      - ./configs/zap:/zap/config
+    command: zap-webswing.sh
+    restart: unless-stopped
+    labels:
+      - "websec.category=security-tool"
+      - "websec.type=dast-scanner"
+      - "websec.description=OWASP ZAP scanner de sécurité web"
+
+  # Burp Suite Community (via proxy)
+  burp-proxy:
+    image: nginx:alpine
+    container_name: websec-burp-proxy
+    networks:
+      - security-tools-network
+      - vulnerable-apps-network
+    ports:
+      - "8088:80"
+    volumes:
+      - ./configs/burp/nginx.conf:/etc/nginx/nginx.conf
+      - burp_data:/var/log/nginx
+    restart: unless-stopped
+    labels:
+      - "websec.category=security-tool"
+      - "websec.type=proxy"
+      - "websec.description=Proxy pour Burp Suite"
+
+  # Nuclei - Scanner de vulnérabilités haute vitesse
+  nuclei:
+    image: projectdiscovery/nuclei:latest
+    container_name: websec-nuclei
+    networks:
+      - security-tools-network
+      - vulnerable-apps-network
+    volumes:
+      - ./evidence/nuclei:/app/output
+      - ./configs/nuclei:/app/config
+    command: -update-templates
+    restart: "no"
+    labels:
+      - "websec.category=security-tool"
+      - "websec.type=vulnerability-scanner"
+      - "websec.description=Scanner rapide de vulnérabilités"
+
+  # Nikto - Scanner serveur web
+  nikto:
+    image: frapsoft/nikto
+    container_name: websec-nikto
+    networks:
+      - security-tools-network
+      - vulnerable-apps-network
+    volumes:
+      - ./evidence/nikto:/tmp
+    entrypoint: ["/bin/sh", "-c", "while true; do sleep 3600; done"]
+    restart: unless-stopped
+    labels:
+      - "websec.category=security-tool"
+      - "websec.type=web-scanner"
+      - "websec.description=Scanner de serveur web"
+
+  # SQLMap - Outil exploitation SQL injection
+  sqlmap:
+    image: paoloo/sqlmap
+    container_name: websec-sqlmap
+    networks:
+      - security-tools-network
+      - vulnerable-apps-network
+    volumes:
+      - ./evidence/sqlmap:/output
+    entrypoint: ["/bin/sh", "-c", "while true; do sleep 3600; done"]
+    restart: unless-stopped
+    labels:
+      - "websec.category=security-tool"
+      - "websec.type=exploitation"
+      - "websec.description=Outil d'exploitation SQL injection"
+
+  # ===================================
+  # OUTILS D'ANALYSE STATIQUE (SAST)
+  # ===================================
+
+  # SonarQube - Analyse qualité et sécurité code
+  sonarqube:
+    image: sonarqube:community
+    container_name: websec-sonarqube
+    networks:
+      - security-tools-network
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres-sonar:5432/sonar
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - ./configs/sonarqube:/opt/sonarqube/conf
+    depends_on:
+      - postgres-sonar
+    restart: unless-stopped
+    labels:
+      - "websec.category=security-tool"
+      - "websec.type=sast"
+      - "websec.description=Analyse statique code et sécurité"
+
+  # Base de données PostgreSQL pour SonarQube
+  postgres-sonar:
+    image: postgres:13
+    container_name: websec-postgres-sonar
+    networks:
+      - internal-network
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonar
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Semgrep - Analyse statique rapide
+  semgrep:
+    image: returntocorp/semgrep
+    container_name: websec-semgrep
+    networks:
+      - security-tools-network
+    volumes:
+      - ./lab/source-code:/src
+      - ./evidence/semgrep:/output
+    entrypoint: ["/bin/sh", "-c", "while true; do sleep 3600; done"]
+    restart: unless-stopped
+    labels:
+      - "websec.category=security-tool"
+      - "websec.type=sast"
+      - "websec.description=Analyse statique rapide"
+
+  # ===================================
+  # MONITORING ET LOGGING
+  # ===================================
+
+  # Elasticsearch - Stockage logs et recherche
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: websec-elasticsearch
+    networks:
+      - monitoring-network
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=log-storage"
+      - "websec.description=Stockage et recherche de logs"
+
+  # Logstash - Traitement des logs
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.0
+    container_name: websec-logstash
+    networks:
+      - monitoring-network
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+    volumes:
+      - ./configs/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./evidence/logs:/logs
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=log-processing"
+      - "websec.description=Traitement et enrichissement logs"
+
+  # Kibana - Visualisation logs et dashboards
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    container_name: websec-kibana
+    networks:
+      - monitoring-network
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=visualization"
+      - "websec.description=Dashboards et analyse logs"
+
+  # Grafana - Dashboards métriques
+  grafana:
+    image: grafana/grafana:latest
+    container_name: websec-grafana
+    networks:
+      - monitoring-network
+    ports:
+      - "3001:3000"  # Port différent pour éviter conflit avec Juice Shop
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=localhost
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./configs/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./configs/grafana/datasources:/etc/grafana/provisioning/datasources
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=metrics-dashboard"
+      - "websec.description=Dashboards métriques et performance"
+
+  # Prometheus - Collecte métriques
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: websec-prometheus
+    networks:
+      - monitoring-network
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=metrics-collection"
+      - "websec.description=Collecte métriques système"
+
+  # Jaeger - Tracing distribué
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: websec-jaeger
+    networks:
+      - monitoring-network
+    ports:
+      - "16686:16686"   # UI Jaeger
+      - "14268:14268"   # Jaeger collector
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=tracing"
+      - "websec.description=Tracing distribué applications"
+
+  # ===================================
+  # CI/CD ET DEVSECOPS
+  # ===================================
+
+  # Jenkins - Intégration continue
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: websec-jenkins
+    networks:
+      - security-tools-network
+      - monitoring-network
+    ports:
+      - "8089:8080"
+      - "50000:50000"
+    environment:
+      - JENKINS_OPTS="--httpPort=8080 --prefix=/jenkins"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    labels:
+      - "websec.category=devsecops"
+      - "websec.type=ci-cd"
+      - "websec.description=Intégration continue sécurisée"
+
+  # GitLab Runner - Exécuteur CI/CD
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: websec-gitlab-runner
+    networks:
+      - security-tools-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./configs/gitlab-runner:/etc/gitlab-runner
+    restart: unless-stopped
+    labels:
+      - "websec.category=devsecops"
+      - "websec.type=ci-runner"
+      - "websec.description=Exécuteur pipelines CI/CD"
+
+  # ===================================
+  # BASES DE DONNÉES ET STOCKAGE
+  # ===================================
+
+  # PostgreSQL - Base principale
+  postgresql:
+    image: postgres:13
+    container_name: websec-postgresql
+    networks:
+      - internal-network
+      - websec-network
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=websec
+      - POSTGRES_USER=websec
+      - POSTGRES_PASSWORD=websec_pass
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./configs/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    labels:
+      - "websec.category=database"
+      - "websec.type=relational"
+      - "websec.description=Base de données principale PostgreSQL"
+
+  # Redis - Cache et sessions
+  redis:
+    image: redis:6-alpine
+    container_name: websec-redis
+    networks:
+      - internal-network
+      - websec-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    labels:
+      - "websec.category=database"
+      - "websec.type=cache"
+      - "websec.description=Cache Redis pour sessions"
+
+  # MongoDB - Base NoSQL vulnérable pour tests
+  mongodb-vulnerable:
+    image: mongo:4.4
+    container_name: websec-mongodb-vulnerable
+    networks:
+      - vulnerable-apps-network
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    labels:
+      - "websec.category=vulnerable-app"
+      - "websec.type=database"
+      - "websec.description=MongoDB vulnérable pour tests"
+
+  # ===================================
+  # SÉCURITÉ ET ORCHESTRATION
+  # ===================================
+
+  # HashiCorp Vault - Gestion secrets
+  vault:
+    image: vault:latest
+    container_name: websec-vault
+    networks:
+      - internal-network
+      - websec-network
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=websec-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    volumes:
+      - vault_data:/vault/data
+      - ./configs/vault:/vault/config
+    cap_add:
+      - IPC_LOCK
+    restart: unless-stopped
+    labels:
+      - "websec.category=security"
+      - "websec.type=secrets-management"
+      - "websec.description=Gestion sécurisée des secrets"
+
+  # Falco - Détection d'anomalies runtime
+  falco:
+    image: falcosecurity/falco:latest
+    container_name: websec-falco
+    networks:
+      - monitoring-network
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /dev:/host/dev
+      - /proc:/host/proc:ro
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - ./configs/falco:/etc/falco
+    privileged: true
+    restart: unless-stopped
+    labels:
+      - "websec.category=security"
+      - "websec.type=runtime-security"
+      - "websec.description=Détection anomalies runtime"
+
+  # ===================================
+  # OUTILS D'ANALYSE ET REPORTING
+  # ===================================
+
+  # Jupyter Notebook - Analyse et reporting
+  jupyter:
+    image: jupyter/datascience-notebook:latest
+    container_name: websec-jupyter
+    networks:
+      - websec-network
+      - monitoring-network
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=websec-token
+      - GRANT_SUDO=yes
+    volumes:
+      - ./scripts/analysis:/home/jovyan/analysis
+      - ./evidence:/home/jovyan/evidence
+      - ./reports:/home/jovyan/reports
+      - ./configs:/home/jovyan/configs
+    user: root
+    restart: unless-stopped
+    labels:
+      - "websec.category=analysis"
+      - "websec.type=notebook"
+      - "websec.description=Analyse de données et reporting"
+
+  # Générateur de rapports
+  report-generator:
+    image: python:3.9-slim
+    container_name: websec-report-generator
+    networks:
+      - websec-network
+      - monitoring-network
+    ports:
+      - "8091:8000"
+    volumes:
+      - ./scripts/reporting:/app
+      - ./reports:/reports
+      - ./evidence:/evidence
+      - ./templates:/templates
+    working_dir: /app
+    command: python -m http.server 8000
+    restart: unless-stopped
+    labels:
+      - "websec.category=reporting"
+      - "websec.type=generator"
+      - "websec.description=Génération automatique de rapports"
+
+  # ===================================
+  # PROXY ET LOAD BALANCER
+  # ===================================
+
+  # Nginx - Reverse proxy et load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: websec-nginx
+    networks:
+      - websec-network
+      - vulnerable-apps-network
+      - monitoring-network
+      - security-tools-network
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./configs/nginx/ssl:/etc/nginx/ssl
+      - ./evidence/nginx:/var/log/nginx
+    depends_on:
+      - juice-shop
+      - dvwa
+      - webgoat
+      - mutillidae
+      - bwapp
+    restart: unless-stopped
+    labels:
+      - "websec.category=infrastructure"
+      - "websec.type=reverse-proxy"
+      - "websec.description=Reverse proxy et load balancer"
+
+  # ===================================
+  # SERVICES DE TEST ET SIMULATION
+  # ===================================
+
+  # Simulateur de trafic web
+  traffic-simulator:
+    image: nicolaka/netshoot
+    container_name: websec-traffic-simulator
+    networks:
+      - vulnerable-apps-network
+    volumes:
+      - ./scripts/traffic:/scripts
+    command: /bin/bash -c "while true; do sleep 3600; done"
+    restart: unless-stopped
+    labels:
+      - "websec.category=simulation"
+      - "websec.type=traffic-generator"
+      - "websec.description=Générateur de trafic web pour tests"
+
+  # Service de capture réseau
+  tcpdump-capture:
+    image: nicolaka/netshoot
+    container_name: websec-tcpdump
+    networks:
+      - vulnerable-apps-network
+      - security-tools-network
+    volumes:
+      - ./evidence/pcaps:/captures
+    command: tcpdump -i eth0 -w /captures/web-traffic-$(date +%Y%m%d-%H%M%S).pcap
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    labels:
+      - "websec.category=capture"
+      - "websec.type=network"
+      - "websec.description=Capture trafic réseau web"
+
+  # Service de test webhook
+  webhook-tester:
+    image: tarampampam/webhook-tester
+    container_name: websec-webhook-tester
+    networks:
+      - vulnerable-apps-network
+      - security-tools-network
+    ports:
+      - "8092:8080"
+    restart: unless-stopped
+    labels:
+      - "websec.category=testing"
+      - "websec.type=webhook"
+      - "websec.description=Service de test webhook"
+
+  # ===================================
+  # SURVEILLANCE SYSTÈME
+  # ===================================
+
+  # Node Exporter - Métriques système
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: websec-node-exporter
+    networks:
+      - monitoring-network
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=system-metrics"
+      - "websec.description=Collecte métriques système"
+
+  # cAdvisor - Métriques conteneurs
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: websec-cadvisor
+    networks:
+      - monitoring-network
+    ports:
+      - "8093:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    restart: unless-stopped
+    labels:
+      - "websec.category=monitoring"
+      - "websec.type=container-metrics"
+      - "websec.description=Métriques conteneurs Docker"
+
+  # Watchtower - Mise à jour automatique conteneurs
+  watchtower:
+    image: containrrr/watchtower
+    container_name: websec-watchtower
+    networks:
+      - monitoring-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 30 2 * * *  # 2h30 du matin tous les jours
+      - WATCHTOWER_NOTIFICATIONS=email
+      - WATCHTOWER_NOTIFICATION_EMAIL_FROM=websec@localhost
+      - WATCHTOWER_NOTIFICATION_EMAIL_TO=admin@localhost
+    restart: unless-stopped
+    labels:
+      - "websec.category=maintenance"
+      - "websec.type=auto-update"
+      - "websec.description=Mise à jour automatique conteneurs"

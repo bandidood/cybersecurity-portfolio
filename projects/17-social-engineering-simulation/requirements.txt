@@ -1,0 +1,190 @@
+# ============================================================================
+# Requirements - Social Engineering Simulation Platform
+# ============================================================================
+# Dépendances Python pour la simulation d'ingénierie sociale,
+# campagnes de phishing, OSINT et sensibilisation à la sécurité.
+#
+# Author: Cybersecurity Portfolio
+# Version: 1.0.0
+# Last Updated: January 28, 2024
+# ============================================================================
+
+# ================================================================
+# FRAMEWORKS WEB ET API
+# ================================================================
+Flask==2.3.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-WTF==1.1.1
+Flask-Mail==0.9.1
+Flask-CORS==4.0.0
+requests==2.31.0
+urllib3==2.0.7
+
+# ================================================================
+# BASE DE DONNÉES
+# ================================================================
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# ================================================================
+# CACHE ET TÂCHES ASYNCHRONES
+# ================================================================
+redis==5.0.1
+celery==5.3.4
+flower==2.0.1
+
+# ================================================================
+# ANALYSE ET RECONNAISSANCE
+# ================================================================
+# Scraping et analyse web
+beautifulsoup4==4.12.2
+scrapy==2.11.0
+selenium==4.15.2
+lxml==4.9.3
+html2text==2020.1.16
+
+# DNS et réseau
+dnspython==2.4.2
+python-whois==0.8.0
+shodan==1.30.1
+ipwhois==1.2.0
+python-nmap==0.7.1
+
+# OSINT et réseaux sociaux
+tweepy==4.14.0
+linkedin-api==2.0.1
+google-api-python-client==2.108.0
+PyGithub==1.59.1
+
+# ================================================================
+# EMAIL ET PHISHING
+# ================================================================
+# Gestion d'emails
+smtplib-starttls-fix==1.0
+email-validator==2.1.0
+mailparser==4.1.0
+exchangelib==5.1.0
+
+# Templates et génération de contenu
+Jinja2==3.1.2
+Faker==20.1.0
+lorem==0.1.1
+
+# ================================================================
+# SÉCURITÉ ET CRYPTOGRAPHIE
+# ================================================================
+cryptography==41.0.7
+passlib==1.7.4
+bcrypt==4.1.1
+PyJWT==2.8.0
+
+# ================================================================
+# GÉNÉRATION DE RAPPORTS
+# ================================================================
+# Documents et rapports
+reportlab==4.0.7
+matplotlib==3.8.2
+seaborn==0.13.0
+plotly==5.17.0
+pandas==2.1.3
+numpy==1.25.2
+
+# Templates HTML
+weasyprint==60.2
+xhtml2pdf==0.2.11
+
+# ================================================================
+# INTERFACE UTILISATEUR
+# ================================================================
+# Dashboard et métriques
+dash==2.14.2
+dash-bootstrap-components==1.5.0
+streamlit==1.28.1
+
+# ================================================================
+# TESTS ET VALIDATION
+# ================================================================
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-flask==1.3.0
+factory-boy==3.3.0
+
+# ================================================================
+# OUTILS DE DÉVELOPPEMENT
+# ================================================================
+# Formatage et qualité du code
+black==23.11.0
+flake8==6.1.0
+pylint==3.0.3
+isort==5.12.0
+
+# Documentation
+sphinx==7.2.6
+sphinx-rtd-theme==1.3.0
+
+# ================================================================
+# CONFIGURATION ET LOGGING
+# ================================================================
+python-dotenv==1.0.0
+pyyaml==6.0.1
+toml==0.10.2
+configparser==6.0.0
+python-json-logger==2.0.7
+
+# ================================================================
+# MONITORING ET MÉTRIQUES
+# ================================================================
+prometheus-client==0.19.0
+psutil==5.9.6
+
+# ================================================================
+# UTILITAIRES SYSTÈME
+# ================================================================
+click==8.1.7
+rich==13.7.0
+colorama==0.4.6
+tqdm==4.66.1
+pathlib2==2.3.7
+
+# ================================================================
+# INTÉGRATIONS SPÉCIALISÉES
+# ================================================================
+# GoPhish API
+gophish==0.5.1
+
+# Social Engineering Toolkit (SET) - Python bindings
+python-set==1.0.0
+
+# MITRE ATT&CK Framework
+mitreattack-python==1.7.2
+
+# ================================================================
+# ENVIRONNEMENT DE DÉVELOPPEMENT
+# ================================================================
+# Serveur de développement
+gunicorn==21.2.0
+waitress==2.1.2
+
+# Variables d'environnement
+python-decouple==3.8
+
+# ================================================================
+# SÉCURITÉ SUPPLÉMENTAIRE
+# ================================================================
+# Validation d'entrées
+cerberus==1.3.4
+marshmallow==3.20.1
+
+# Rate limiting
+flask-limiter==3.5.0
+
+# ================================================================
+# VERSION SPÉCIFIÉES POUR LA COMPATIBILITÉ
+# ================================================================
+# Pas de conflits avec les versions système
+setuptools>=65.0.0
+pip>=23.0.0
+wheel>=0.40.0

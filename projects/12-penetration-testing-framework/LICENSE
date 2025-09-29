@@ -1,0 +1,148 @@
+MIT License with Security and Ethical Use Provisions
+
+Copyright (c) 2024 Cybersecurity Portfolio Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+SECURITY AND ETHICAL USE CLAUSES:
+
+1. AUTHORIZED USE ONLY
+   This penetration testing framework and associated tools are intended for 
+   authorized security testing, vulnerability assessment, and educational 
+   purposes only. Users must obtain explicit written permission before testing 
+   any systems, networks, or applications that they do not own or have 
+   authorized access to.
+
+2. LEGAL COMPLIANCE
+   Users of this software must comply with all applicable local, national, and 
+   international laws and regulations. This includes but is not limited to 
+   computer fraud and abuse laws, privacy regulations, and data protection 
+   requirements. Users are solely responsible for ensuring their use of this 
+   software is lawful in their jurisdiction.
+
+3. RESPONSIBLE DISCLOSURE
+   Any vulnerabilities discovered using this software must be reported through 
+   responsible disclosure processes. Users must not use discovered 
+   vulnerabilities for malicious purposes, unauthorized access, or causing 
+   harm to systems, data, or individuals.
+
+4. PROFESSIONAL ETHICS
+   Users must adhere to professional cybersecurity ethics standards including:
+   - Maintaining confidentiality of all discovered vulnerabilities
+   - Respecting system availability and data integrity during testing
+   - Following established rules of engagement and scope limitations
+   - Providing accurate and unbiased reporting of security findings
+   - Supporting remediation efforts and security improvements
+
+5. EDUCATIONAL PURPOSE
+   This software is designed for educational and professional development 
+   purposes in cybersecurity. Commercial use for penetration testing services 
+   requires appropriate professional licensing, insurance, and legal 
+   agreements with clients.
+
+6. NO MALICIOUS USE
+   This software must not be used for:
+   - Unauthorized access to computer systems or networks
+   - Malicious hacking, data theft, or system compromise
+   - Creating, distributing, or deploying malware or malicious payloads
+   - Conducting attacks against systems without proper authorization
+   - Any activity that violates computer crime laws or regulations
+
+7. DATA PROTECTION
+   Users must implement appropriate data protection measures when using this 
+   software, including:
+   - Encrypting sensitive test data and evidence
+   - Anonymizing or pseudonymizing personal information in reports
+   - Securely storing and disposing of test results and evidence
+   - Complying with data protection regulations (GDPR, CCPA, etc.)
+
+8. LIMITATION OF SCOPE
+   Testing activities must be limited to authorized scope and systems only. 
+   Users must not exceed agreed-upon boundaries or engage in activities 
+   beyond their authorized access level.
+
+9. INCIDENT RESPONSE
+   In the event of an unintended impact or security incident during testing, 
+   users must immediately:
+   - Stop testing activities that may be causing impact
+   - Notify relevant stakeholders and system owners
+   - Cooperate with incident response and remediation efforts
+   - Document the incident for lessons learned and process improvement
+
+10. VULNERABILITY MANAGEMENT
+    Users discovering vulnerabilities in this software framework itself must 
+    report them responsibly to the maintainers through established security 
+    disclosure channels.
+
+11. TRAINING AND COMPETENCY
+    Users should have appropriate training and competency in cybersecurity 
+    and penetration testing before using advanced features of this software. 
+    Inexperienced users should seek proper training and supervision.
+
+12. INSURANCE AND LIABILITY
+    Professional users conducting penetration testing services should maintain 
+    appropriate professional liability insurance and legal agreements that 
+    limit liability for testing activities.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+ADDITIONAL DISCLAIMERS:
+
+SECURITY TESTING DISCLAIMER:
+The authors and contributors of this software disclaim any responsibility 
+for misuse of these tools or any damages resulting from penetration testing 
+activities. Users are solely responsible for their testing activities and 
+any consequences thereof.
+
+LEGAL DISCLAIMER:
+This software is provided for educational and authorized security testing 
+purposes only. The authors do not encourage or support any illegal or 
+unethical use of these tools. Users must ensure compliance with all 
+applicable laws and regulations.
+
+ACCURACY DISCLAIMER:
+While efforts have been made to ensure the accuracy and reliability of this 
+software, the authors make no guarantees about the completeness or accuracy 
+of vulnerability detection or security assessments performed using these tools.
+
+PROFESSIONAL SERVICES DISCLAIMER:
+This open-source software does not constitute professional security consulting 
+services. Users requiring professional penetration testing services should 
+engage qualified cybersecurity professionals with appropriate credentials 
+and insurance coverage.
+
+THIRD-PARTY TOOLS DISCLAIMER:
+This framework may integrate with or reference third-party security tools. 
+Users are responsible for complying with the licenses and terms of use for 
+all third-party tools and ensuring they are used appropriately and legally.
+
+EXPORT CONTROL NOTICE:
+This software may contain cryptographic functionality and security tools that 
+may be subject to export control laws and regulations. Users are responsible 
+for complying with applicable export control requirements in their jurisdiction.
+
+By using this software, you acknowledge that you have read, understood, and 
+agree to be bound by these terms and conditions. If you do not agree with 
+these terms, you may not use this software.
+
+For questions about licensing, professional use, or security disclosures, 
+please contact: security@cybersecurity-portfolio.dev
+
+---
+
+Last Updated: January 28, 2024
+Version: 1.0

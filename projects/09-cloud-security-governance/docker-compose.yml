@@ -1,0 +1,676 @@
+# ==============================================================================
+# Cloud Security & Governance Lab Environment
+# ==============================================================================
+# Comprehensive Docker Compose stack for cloud security testing, compliance
+# monitoring, policy enforcement, and governance across multi-cloud environments.
+# ==============================================================================
+
+version: '3.8'
+
+# ==============================================================================
+# NETWORKS
+# ==============================================================================
+networks:
+  cloud-security-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  
+  monitoring-net:
+    driver: bridge
+    internal: false
+  
+  security-net:
+    driver: bridge
+    internal: false
+
+# ==============================================================================
+# VOLUMES
+# ==============================================================================
+volumes:
+  # Monitoring & Logging
+  prometheus_data:
+  grafana_data:
+  elasticsearch_data:
+  kibana_data:
+  jaeger_data:
+  
+  # Security Tools
+  vault_data:
+  opa_data:
+  falco_data:
+  
+  # Databases
+  postgres_data:
+  redis_data:
+  
+  # Configuration & Policies
+  policies_data:
+  compliance_data:
+
+# ==============================================================================
+# SERVICES
+# ==============================================================================
+services:
+
+  # ============================================================================
+  # CORE INFRASTRUCTURE
+  # ============================================================================
+  
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cloud-security-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cloud_security
+      POSTGRES_USER: security_admin
+      POSTGRES_PASSWORD: SecurePassword123!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cloud-security-net
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U security_admin -d cloud_security"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: cloud-security-redis
+    restart: unless-stopped
+    command: redis-server --requirepass SecureRedis123!
+    volumes:
+      - redis_data:/data
+    networks:
+      - cloud-security-net
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # MONITORING & OBSERVABILITY STACK
+  # ============================================================================
+  
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: cloud-security-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - prometheus_data:/prometheus
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules
+    networks:
+      - monitoring-net
+      - cloud-security-net
+    ports:
+      - "9090:9090"
+    depends_on:
+      - node-exporter
+      - cadvisor
+
+  # Grafana - Visualization & Dashboards
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: cloud-security-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SECURITY_ALLOW_EMBEDDING: true
+      GF_AUTH_ANONYMOUS_ENABLED: false
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - monitoring-net
+      - cloud-security-net
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  # Node Exporter - System Metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: cloud-security-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - monitoring-net
+    ports:
+      - "9100:9100"
+
+  # cAdvisor - Container Metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: cloud-security-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - monitoring-net
+    ports:
+      - "8080:8080"
+
+  # ============================================================================
+  # ELASTICSEARCH & LOGGING STACK
+  # ============================================================================
+  
+  # Elasticsearch - Search & Analytics
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: cloud-security-elasticsearch
+    restart: unless-stopped
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=cloud-security-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - cloud-security-net
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Kibana - Data Visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: cloud-security-kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=changeme
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a7a6311933d3503b89bc2dbc36572c4a
+    volumes:
+      - kibana_data:/usr/share/kibana/data
+      - ./monitoring/kibana/dashboards:/usr/share/kibana/dashboards
+    networks:
+      - cloud-security-net
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Logstash - Log Processing
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: cloud-security-logstash
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/logstash/config:/usr/share/logstash/config:ro
+      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    networks:
+      - cloud-security-net
+    ports:
+      - "5044:5044"
+      - "5000:5000"
+    environment:
+      LS_JAVA_OPTS: "-Xmx1g -Xms1g"
+    depends_on:
+      - elasticsearch
+
+  # Filebeat - Log Shipper
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: cloud-security-filebeat
+    restart: unless-stopped
+    user: root
+    volumes:
+      - ./monitoring/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - cloud-security-net
+    depends_on:
+      - elasticsearch
+      - logstash
+
+  # ============================================================================
+  # SECURITY TOOLS & PLATFORMS
+  # ============================================================================
+  
+  # HashiCorp Vault - Secrets Management
+  vault:
+    image: vault:1.15.0
+    container_name: cloud-security-vault
+    restart: unless-stopped
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-root-token
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://0.0.0.0:8200
+    volumes:
+      - vault_data:/vault/data
+      - ./tools/vault/config:/vault/config
+      - ./tools/vault/policies:/vault/policies
+    networks:
+      - security-net
+      - cloud-security-net
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD-SHELL", "vault status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Open Policy Agent (OPA) - Policy Engine
+  opa:
+    image: openpolicyagent/opa:0.58.0-envoy
+    container_name: cloud-security-opa
+    restart: unless-stopped
+    command:
+      - run
+      - --server
+      - --addr=0.0.0.0:8181
+      - --diagnostic-addr=0.0.0.0:8282
+      - --set=plugins.envoy_ext_authz_grpc.addr=:9191
+      - --set=plugins.envoy_ext_authz_grpc.enable=true
+      - --set=decision_logs.console=true
+      - /policies
+    volumes:
+      - ./policies:/policies:ro
+      - opa_data:/data
+    networks:
+      - security-net
+      - cloud-security-net
+    ports:
+      - "8181:8181"
+      - "8282:8282"
+      - "9191:9191"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8181/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Falco - Runtime Security Monitoring
+  falco:
+    image: falcosecurity/falco-no-driver:0.36.0
+    container_name: cloud-security-falco
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - ./tools/falco/falco.yaml:/etc/falco/falco.yaml:ro
+      - ./tools/falco/rules:/etc/falco/rules:ro
+      - /var/run/docker.sock:/host/var/run/docker.sock:ro
+      - /dev:/host/dev:ro
+      - /proc:/host/proc:ro
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - /etc:/host/etc:ro
+    networks:
+      - security-net
+      - cloud-security-net
+    ports:
+      - "8765:8765"
+
+  # OWASP ZAP - Web Application Security Scanner
+  zap:
+    image: owasp/zap2docker-stable:2.14.0
+    container_name: cloud-security-zap
+    restart: unless-stopped
+    command: zap-webswing.sh
+    volumes:
+      - ./tools/zap:/zap/wrk:rw
+    networks:
+      - security-net
+    ports:
+      - "8090:8080"
+      - "8091:8090"
+    environment:
+      ZAP_PORT: 8080
+
+  # ============================================================================
+  # CLOUD SECURITY POSTURE MANAGEMENT (CSPM)
+  # ============================================================================
+  
+  # Scout Suite - Multi-Cloud Security Auditing
+  scout-suite:
+    build:
+      context: ./tools/scout-suite
+      dockerfile: Dockerfile
+    container_name: cloud-security-scout-suite
+    restart: "no"
+    volumes:
+      - ./tools/scout-suite/reports:/opt/scoutsuite/reports
+      - ./tools/scout-suite/credentials:/opt/scoutsuite/credentials
+    networks:
+      - cloud-security-net
+    environment:
+      AWS_PROFILE: default
+      AZURE_SUBSCRIPTION_ID: ${AZURE_SUBSCRIPTION_ID:-}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
+
+  # Prowler - AWS Security Assessment
+  prowler:
+    build:
+      context: ./tools/prowler
+      dockerfile: Dockerfile
+    container_name: cloud-security-prowler
+    restart: "no"
+    volumes:
+      - ./tools/prowler/reports:/opt/prowler/output
+      - ~/.aws:/root/.aws:ro
+    networks:
+      - cloud-security-net
+    environment:
+      AWS_PROFILE: default
+
+  # ============================================================================
+  # COMPLIANCE & GOVERNANCE TOOLS
+  # ============================================================================
+  
+  # Compliance Dashboard
+  compliance-dashboard:
+    build:
+      context: ./tools/compliance-dashboard
+      dockerfile: Dockerfile
+    container_name: cloud-security-compliance-dashboard
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://security_admin:SecurePassword123!@postgres:5432/cloud_security
+      REDIS_URL: redis://:SecureRedis123!@redis:6379
+      SECRET_KEY: your-secret-key-here
+    volumes:
+      - ./compliance:/app/compliance:ro
+      - compliance_data:/app/data
+    networks:
+      - cloud-security-net
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  # Policy Validator Service
+  policy-validator:
+    build:
+      context: ./tools/policy-validator
+      dockerfile: Dockerfile
+    container_name: cloud-security-policy-validator
+    restart: unless-stopped
+    volumes:
+      - ./policies:/app/policies:ro
+      - ./compliance:/app/compliance:ro
+    networks:
+      - cloud-security-net
+    ports:
+      - "8001:8001"
+    depends_on:
+      - opa
+      - postgres
+
+  # ============================================================================
+  # DISTRIBUTED TRACING
+  # ============================================================================
+  
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.50.0
+    container_name: cloud-security-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      COLLECTOR_ZIPKIN_HOST_PORT: :9411
+    volumes:
+      - jaeger_data:/badger
+    networks:
+      - cloud-security-net
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector
+      - "14250:14250"  # Jaeger GRPC
+      - "9411:9411"    # Zipkin compatible endpoint
+
+  # ============================================================================
+  # MESSAGE QUEUE & STREAMING
+  # ============================================================================
+  
+  # Apache Kafka - Event Streaming
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: cloud-security-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - cloud-security-net
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: cloud-security-kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    networks:
+      - cloud-security-net
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+
+  # ============================================================================
+  # SECURITY ORCHESTRATION & AUTOMATION
+  # ============================================================================
+  
+  # Security Orchestrator
+  security-orchestrator:
+    build:
+      context: ./tools/security-orchestrator
+      dockerfile: Dockerfile
+    container_name: cloud-security-orchestrator
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://security_admin:SecurePassword123!@postgres:5432/cloud_security
+      REDIS_URL: redis://:SecureRedis123!@redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-root-token
+    volumes:
+      - ./tools/security-orchestrator/playbooks:/app/playbooks:ro
+      - ./policies:/app/policies:ro
+    networks:
+      - cloud-security-net
+      - security-net
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - vault
+
+  # ============================================================================
+  # WEB INTERFACE & API GATEWAY
+  # ============================================================================
+  
+  # Nginx - Reverse Proxy & Load Balancer
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: cloud-security-nginx
+    restart: unless-stopped
+    volumes:
+      - ./tools/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./tools/nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - cloud-security-net
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - grafana
+      - kibana
+      - compliance-dashboard
+      - policy-validator
+      - security-orchestrator
+
+  # ============================================================================
+  # DEMO APPLICATIONS (Vulnerable by Design for Testing)
+  # ============================================================================
+  
+  # DVWA - Damn Vulnerable Web Application
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: cloud-security-dvwa
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: vulnerables
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: dvwa
+      MYSQL_PASSWORD: password
+    networks:
+      - cloud-security-net
+    ports:
+      - "8080:80"
+
+  # Mutillidae - OWASP Vulnerable Web Application
+  mutillidae:
+    image: citizenstig/nowasp:latest
+    container_name: cloud-security-mutillidae
+    restart: unless-stopped
+    networks:
+      - cloud-security-net
+    ports:
+      - "8081:80"
+
+  # ============================================================================
+  # INITIALIZATION & SETUP
+  # ============================================================================
+  
+  # Setup Service - Initial Configuration
+  setup:
+    build:
+      context: ./tools/setup
+      dockerfile: Dockerfile
+    container_name: cloud-security-setup
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://security_admin:SecurePassword123!@postgres:5432/cloud_security
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      GRAFANA_URL: http://grafana:3000
+      GRAFANA_ADMIN_PASSWORD: admin123
+    volumes:
+      - ./tools/setup/scripts:/app/scripts:ro
+      - ./monitoring/grafana/dashboards:/app/dashboards:ro
+      - ./compliance:/app/compliance:ro
+    networks:
+      - cloud-security-net
+    depends_on:
+      - postgres
+      - elasticsearch
+      - grafana
+      - kibana
+
+# ==============================================================================
+# HEALTH CHECKS & DEPENDENCIES
+# ==============================================================================
+
+# The services are designed with proper health checks and dependencies
+# to ensure reliable startup and operation. Key services like databases
+# and monitoring tools have health checks to verify they're ready before
+# dependent services start.
+
+# ==============================================================================
+# SECURITY CONSIDERATIONS
+# ==============================================================================
+
+# 1. Network Segmentation: Multiple networks separate different service tiers
+# 2. Volume Persistence: Important data is persisted in named volumes
+# 3. Environment Variables: Sensitive configuration via environment variables
+# 4. Health Checks: Services have health checks for reliability
+# 5. Resource Limits: Consider adding resource limits for production use
+# 6. SSL/TLS: SSL certificates can be mounted for HTTPS termination
+# 7. Authentication: Most services have authentication configured
+# 8. Logging: Centralized logging through ELK stack
+
+# ==============================================================================
+# USAGE INSTRUCTIONS
+# ==============================================================================
+
+# To start the complete lab environment:
+# docker-compose up -d
+
+# To start specific services:
+# docker-compose up -d prometheus grafana elasticsearch kibana
+
+# To scale services:
+# docker-compose up -d --scale security-orchestrator=3
+
+# To view logs:
+# docker-compose logs -f [service-name]
+
+# To stop all services:
+# docker-compose down
+
+# To remove all data (CAUTION):
+# docker-compose down -v

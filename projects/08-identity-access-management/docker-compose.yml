@@ -1,0 +1,983 @@
+version: '3.8'
+
+# Enterprise Identity & Access Management (IAM) Lab Environment
+# Comprehensive identity security, authentication, and access governance platform
+
+services:
+
+  # ============================================================================
+  # Core Directory Services
+  # ============================================================================
+
+  iam-ad-server:
+    image: samba-ad:latest
+    container_name: iam-ad-server
+    hostname: ad.corp.iam-lab.local
+    domainname: corp.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.1.10
+    ports:
+      - "53:53/tcp"     # DNS
+      - "53:53/udp"     # DNS
+      - "88:88/tcp"     # Kerberos
+      - "88:88/udp"     # Kerberos
+      - "135:135/tcp"   # RPC Endpoint Mapper
+      - "139:139/tcp"   # NetBIOS
+      - "389:389/tcp"   # LDAP
+      - "445:445/tcp"   # SMB
+      - "464:464/tcp"   # Kerberos Password Change
+      - "636:636/tcp"   # LDAPS
+      - "3268:3268/tcp" # Global Catalog
+      - "3269:3269/tcp" # Global Catalog SSL
+    volumes:
+      - ./src/configurations/active-directory:/opt/ad-config
+      - ./src/scripts/deployment:/opt/scripts
+      - ./certificates:/opt/certificates:ro
+      - ./logs/ad:/var/log/samba
+      - ad_data:/var/lib/samba
+      - ad_sysvol:/var/lib/samba/sysvol
+    environment:
+      - SAMBA_DC_DOMAIN=CORP
+      - SAMBA_DC_REALM=CORP.IAM-LAB.LOCAL
+      - SAMBA_DC_ADMIN_PASSWD=ComplexP@ssw0rd123!
+      - SAMBA_DC_DNS_BACKEND=SAMBA_INTERNAL
+      - SAMBA_HOST_IP=172.20.1.10
+      - TZ=UTC
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    healthcheck:
+      test: ["CMD", "samba-tool", "domain", "level", "show"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "component=directory-services"
+      - "service=active-directory"
+      - "security-level=high"
+
+  iam-ldap-server:
+    image: freeipa/freeipa-server:latest
+    container_name: iam-ldap-server
+    hostname: ldap.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.1.20
+    ports:
+      - "389:389/tcp"   # LDAP
+      - "636:636/tcp"   # LDAPS
+      - "88:88/tcp"     # Kerberos (alternate)
+      - "464:464/tcp"   # Kerberos Password Change (alternate)
+    volumes:
+      - ./src/configurations/ldap:/opt/ldap-config
+      - ./src/scripts/deployment:/opt/scripts
+      - ./certificates:/opt/certificates:ro
+      - ./logs/ldap:/var/log/dirsrv
+      - ldap_data:/data
+      - ldap_logs:/logs
+    environment:
+      - IPA_SERVER_HOSTNAME=ldap.iam-lab.local
+      - IPA_SERVER_DOMAIN=iam-lab.local
+      - IPA_SERVER_REALM=IAM-LAB.LOCAL
+      - IPA_SERVER_INSTALL_OPTS=--unattended --setup-dns --no-forwarders
+      - PASSWORD=ComplexP@ssw0rd123!
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-x", "-b", "dc=iam-lab,dc=local", "-s", "base"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+    labels:
+      - "component=directory-services"
+      - "service=ldap"
+      - "security-level=high"
+
+  # ============================================================================
+  # Single Sign-On (SSO) Services
+  # ============================================================================
+
+  iam-keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: iam-keycloak
+    hostname: sso.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.1.30
+    ports:
+      - "8080:8080"     # HTTP
+      - "8443:8443"     # HTTPS
+    volumes:
+      - ./src/configurations/saml-oauth:/opt/keycloak/data/import
+      - ./src/scripts/deployment:/opt/scripts
+      - ./certificates:/opt/certificates:ro
+      - ./logs/keycloak:/opt/keycloak/logs
+      - keycloak_data:/opt/keycloak/data
+    environment:
+      - KC_HOSTNAME=sso.iam-lab.local
+      - KC_HOSTNAME_PORT=8443
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_HTTP_PORT=8080
+      - KC_HTTPS_PORT=8443
+      - KC_HTTPS_CERTIFICATE_FILE=/opt/certificates/server/keycloak.crt
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/certificates/server/keycloak.key
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://iam-postgres:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD_FILE=/run/secrets/keycloak_db_password
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD_FILE=/run/secrets/keycloak_admin_password
+      - KC_FEATURES=token-exchange,admin-fine-grained-authz
+      - KC_LOG_LEVEL=INFO
+    command: 
+      - start
+      - --import-realm
+      - --optimized
+    secrets:
+      - keycloak_admin_password
+      - keycloak_db_password
+    depends_on:
+      - iam-postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/auth/realms/master"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "component=sso"
+      - "service=keycloak"
+      - "security-level=critical"
+
+  # ============================================================================
+  # Multi-Factor Authentication (MFA) Services
+  # ============================================================================
+
+  iam-mfa-server:
+    image: alpine:latest
+    container_name: iam-mfa-server
+    hostname: mfa.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.1.35
+    ports:
+      - "8090:8090"     # MFA API
+      - "8091:8091"     # TOTP Service
+    volumes:
+      - ./src/configurations/mfa:/opt/mfa-config
+      - ./src/scripts/deployment:/opt/scripts
+      - ./tools/identity-management:/opt/tools
+      - ./logs/mfa:/var/log/mfa
+      - mfa_data:/var/lib/mfa
+    environment:
+      - MFA_MODE=production
+      - TOTP_ISSUER=IAM-Lab
+      - SMS_GATEWAY_URL=http://iam-sms-gateway:8092
+      - PUSH_NOTIFICATION_URL=http://iam-push-service:8093
+      - FIDO2_ENABLED=true
+      - BIOMETRIC_ENABLED=false
+      - DATABASE_URL=postgresql://iam-postgres:5432/mfa
+    command: >
+      sh -c "
+      apk add --no-cache python3 py3-pip curl &&
+      pip3 install flask pycryptodome qrcode[pil] requests psycopg2-binary &&
+      python3 /opt/scripts/mfa-service.py
+      "
+    depends_on:
+      - iam-postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=mfa"
+      - "service=mfa-server"
+      - "security-level=high"
+
+  iam-sms-gateway:
+    image: alpine:latest
+    container_name: iam-sms-gateway
+    hostname: sms.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.1.36
+    ports:
+      - "8092:8092"     # SMS Gateway API
+    volumes:
+      - ./src/scripts/deployment:/opt/scripts
+      - ./logs/sms:/var/log/sms
+    environment:
+      - SMS_PROVIDER=twilio
+      - SMS_ACCOUNT_SID_FILE=/run/secrets/twilio_account_sid
+      - SMS_AUTH_TOKEN_FILE=/run/secrets/twilio_auth_token
+      - SMS_FROM_NUMBER=+1234567890
+    command: >
+      sh -c "
+      apk add --no-cache python3 py3-pip &&
+      pip3 install flask twilio &&
+      python3 /opt/scripts/sms-gateway.py
+      "
+    secrets:
+      - twilio_account_sid
+      - twilio_auth_token
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8092/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=mfa"
+      - "service=sms-gateway"
+
+  # ============================================================================
+  # Privileged Access Management (PAM) Services
+  # ============================================================================
+
+  iam-vault:
+    image: vault:latest
+    container_name: iam-vault
+    hostname: vault.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.1.40
+    ports:
+      - "8200:8200"     # Vault API/UI
+    volumes:
+      - ./src/configurations/pam:/vault/config
+      - ./src/scripts/security:/opt/scripts
+      - ./certificates:/opt/certificates:ro
+      - ./logs/vault:/vault/logs
+      - vault_data:/vault/data
+      - vault_logs:/vault/logs
+    environment:
+      - VAULT_ADDR=https://0.0.0.0:8200
+      - VAULT_API_ADDR=https://vault.iam-lab.local:8200
+      - VAULT_CLUSTER_ADDR=https://vault.iam-lab.local:8201
+      - VAULT_UI=true
+      - VAULT_LOG_LEVEL=INFO
+    cap_add:
+      - IPC_LOCK
+    command: 
+      - vault 
+      - server 
+      - -config=/vault/config/vault.hcl
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=pam"
+      - "service=vault"
+      - "security-level=critical"
+
+  iam-pam-vault:
+    image: cyberark/conjur:latest
+    container_name: iam-pam-vault
+    hostname: pam.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.1.50
+    ports:
+      - "8180:443"      # PAM Web UI
+      - "8181:80"       # PAM API
+    volumes:
+      - ./src/configurations/pam:/opt/pam-config
+      - ./src/scripts/security:/opt/scripts
+      - ./certificates:/opt/certificates:ro
+      - ./logs/pam:/var/log/conjur
+      - pam_data:/var/lib/conjur
+    environment:
+      - CONJUR_ACCOUNT=iam-lab
+      - CONJUR_ADMIN_PASSWORD_FILE=/run/secrets/conjur_admin_password
+      - DATABASE_URL=postgresql://iam-postgres:5432/conjur
+      - CONJUR_LOG_LEVEL=info
+    secrets:
+      - conjur_admin_password
+    depends_on:
+      - iam-postgres
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=pam"
+      - "service=pam-vault"
+      - "security-level=critical"
+
+  # ============================================================================
+  # Database Services
+  # ============================================================================
+
+  iam-postgres:
+    image: postgres:15-alpine
+    container_name: iam-postgres
+    hostname: postgres.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.2.10
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./src/configurations/database:/docker-entrypoint-initdb.d
+      - ./logs/postgres:/var/log/postgresql
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=iam_master
+      - POSTGRES_USER=iam_admin
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=peer
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iam_admin -d iam_master"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "component=database"
+      - "service=postgres"
+
+  iam-redis:
+    image: redis:7-alpine
+    container_name: iam-redis
+    hostname: redis.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.2.20
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./src/configurations/redis/redis.conf:/etc/redis/redis.conf:ro
+      - ./logs/redis:/var/log/redis
+      - redis_data:/data
+    command: redis-server /etc/redis/redis.conf --requirepass "${REDIS_PASSWORD}"
+    environment:
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+    secrets:
+      - redis_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "component=cache"
+      - "service=redis"
+
+  # ============================================================================
+  # Monitoring and Analytics Platform
+  # ============================================================================
+
+  iam-prometheus:
+    image: prom/prometheus:latest
+    container_name: iam-prometheus
+    hostname: prometheus.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.3.10
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus:/etc/prometheus
+      - ./logs/prometheus:/var/log/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.external-url=http://prometheus.iam-lab.local:9090'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=prometheus"
+
+  iam-grafana:
+    image: grafana/grafana:latest
+    container_name: iam-grafana
+    hostname: grafana.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.3.20
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning
+      - ./monitoring/identity-analytics:/var/lib/grafana/dashboards
+      - ./logs/grafana:/var/log/grafana
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_INSTALL_PLUGINS=grafana-worldmap-panel,grafana-piechart-panel,grafana-clock-panel
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+    secrets:
+      - grafana_admin_password
+    depends_on:
+      - iam-prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=grafana"
+
+  # ============================================================================
+  # ELK Stack for Log Analysis
+  # ============================================================================
+
+  iam-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: iam-elasticsearch
+    hostname: elasticsearch.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.3.30
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - ./infrastructure/monitoring/elk/elasticsearch:/usr/share/elasticsearch/config
+      - ./logs/elasticsearch:/var/log/elasticsearch
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - node.name=iam-elasticsearch
+      - cluster.name=iam-security-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=true
+      - xpack.security.enrollment.enabled=false
+      - ELASTIC_PASSWORD_FILE=/run/secrets/elastic_password
+    secrets:
+      - elastic_password
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD", "curl", "-u", "elastic:${ELASTIC_PASSWORD}", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=elasticsearch"
+
+  iam-logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: iam-logstash
+    hostname: logstash.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.3.31
+    ports:
+      - "5044:5044"     # Beats input
+      - "9600:9600"     # Logstash monitoring
+    volumes:
+      - ./infrastructure/monitoring/elk/logstash:/usr/share/logstash/pipeline
+      - ./logs:/opt/logs:ro
+    environment:
+      - "LS_JAVA_OPTS=-Xmx512m -Xms512m"
+      - ELASTICSEARCH_HOSTS=http://iam-elasticsearch:9200
+      - ELASTIC_USER=logstash_system
+      - ELASTIC_PASSWORD_FILE=/run/secrets/elastic_password
+    secrets:
+      - elastic_password
+    depends_on:
+      - iam-elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=logstash"
+
+  iam-kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: iam-kibana
+    hostname: kibana.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.3.32
+    ports:
+      - "5601:5601"
+    volumes:
+      - ./infrastructure/monitoring/elk/kibana:/usr/share/kibana/config
+      - ./logs/kibana:/var/log/kibana
+      - kibana_data:/usr/share/kibana/data
+    environment:
+      - SERVER_NAME=kibana.iam-lab.local
+      - ELASTICSEARCH_HOSTS=http://iam-elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD_FILE=/run/secrets/elastic_password
+    secrets:
+      - elastic_password
+    depends_on:
+      - iam-elasticsearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "component=monitoring"
+      - "service=kibana"
+
+  # ============================================================================
+  # Security Testing and Analysis Services
+  # ============================================================================
+
+  iam-test-client:
+    image: kalilinux/kali-rolling:latest
+    container_name: iam-test-client
+    hostname: testclient.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.4.10
+    volumes:
+      - ./tests:/opt/tests
+      - ./tools:/opt/tools
+      - ./certificates:/opt/certificates:ro
+      - ./examples:/opt/examples:ro
+    environment:
+      - CLIENT_MODE=testing
+      - IAM_TESTING=true
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y python3 python3-pip curl wget ldap-utils &&
+      pip3 install requests pyldap python-keycloak pytest &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=testing"
+      - "service=test-client"
+
+  iam-pentest:
+    image: kalilinux/kali-rolling:latest
+    container_name: iam-pentest
+    hostname: pentest.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.4.20
+    volumes:
+      - ./tests/penetration:/opt/pentest
+      - ./tools/security:/opt/security-tools
+      - ./logs/pentest:/var/log/pentest
+    environment:
+      - PENTEST_MODE=authorized
+      - TARGET_DOMAIN=corp.iam-lab.local
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y python3 python3-pip nmap masscan hydra john hashcat &&
+      pip3 install impacket ldap3 requests &&
+      /opt/pentest/setup-pentest-tools.sh &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    labels:
+      - "component=testing"
+      - "service=penetration-testing"
+
+  iam-security-scanner:
+    image: aquasec/trivy:latest
+    container_name: iam-security-scanner
+    hostname: scanner.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.4.30
+    volumes:
+      - ./tools/security:/opt/scanner
+      - ./logs/security:/var/log/scanner
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - SCANNER_MODE=continuous
+      - SCAN_TARGETS=iam-keycloak,iam-vault,iam-ad-server
+    command: >
+      sh -c "
+      apk add --no-cache curl bash python3 py3-pip &&
+      pip3 install requests pyyaml &&
+      /opt/scanner/continuous-security-scan.sh
+      "
+    restart: unless-stopped
+    labels:
+      - "component=security"
+      - "service=vulnerability-scanner"
+
+  # ============================================================================
+  # Compliance and Governance Services
+  # ============================================================================
+
+  iam-compliance-checker:
+    image: python:3.11-slim
+    container_name: iam-compliance-checker
+    hostname: compliance.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.5.10
+    volumes:
+      - ./tests/compliance:/opt/compliance
+      - ./tools/security:/opt/tools
+      - ./monitoring/reporting:/opt/reporting
+      - ./logs/compliance:/var/log/compliance
+    environment:
+      - COMPLIANCE_FRAMEWORKS=nist-800-63,sox,gdpr,iso-27001,hipaa
+      - DATABASE_URL=postgresql://iam-postgres:5432/compliance
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y curl wget ldap-utils &&
+      pip install psycopg2-binary requests ldap3 pyyaml jinja2 &&
+      python /opt/compliance/compliance-engine.py
+      "
+    depends_on:
+      - iam-postgres
+    restart: unless-stopped
+    labels:
+      - "component=compliance"
+      - "service=compliance-checker"
+
+  iam-audit-logger:
+    image: fluent/fluent-bit:latest
+    container_name: iam-audit-logger
+    hostname: audit.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.5.20
+    ports:
+      - "24224:24224"   # Fluentd forward protocol
+    volumes:
+      - ./infrastructure/monitoring/fluent-bit:/fluent-bit/etc
+      - ./logs:/var/log:ro
+      - ./logs/audit:/var/log/audit
+    environment:
+      - FLB_CONFIG_FILE=/fluent-bit/etc/fluent-bit.conf
+      - ELASTICSEARCH_HOST=iam-elasticsearch
+      - ELASTICSEARCH_PORT=9200
+    depends_on:
+      - iam-elasticsearch
+    restart: unless-stopped
+    labels:
+      - "component=audit"
+      - "service=audit-logger"
+
+  # ============================================================================
+  # Application Demo Services
+  # ============================================================================
+
+  iam-demo-app:
+    image: node:18-alpine
+    container_name: iam-demo-app
+    hostname: app.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.6.10
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./examples/configs:/opt/app-config:ro
+      - ./src/configurations/saml-oauth:/opt/auth-config:ro
+      - ./logs/demo-app:/var/log/app
+    environment:
+      - NODE_ENV=development
+      - KEYCLOAK_URL=http://iam-keycloak:8080/auth
+      - KEYCLOAK_REALM=iam-lab
+      - KEYCLOAK_CLIENT_ID=demo-app
+      - KEYCLOAK_CLIENT_SECRET_FILE=/run/secrets/keycloak_client_secret
+    secrets:
+      - keycloak_client_secret
+    command: >
+      sh -c "
+      npm init -y &&
+      npm install express passport passport-saml express-session &&
+      node /opt/app-config/demo-app.js
+      "
+    depends_on:
+      - iam-keycloak
+    restart: unless-stopped
+    labels:
+      - "component=demo"
+      - "service=demo-application"
+
+  # ============================================================================
+  # Reporting and Analytics Services
+  # ============================================================================
+
+  iam-reporting:
+    image: python:3.11-slim
+    container_name: iam-reporting
+    hostname: reporting.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.7.10
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./monitoring/reporting:/app
+      - ./examples/reports:/opt/templates:ro
+      - ./logs:/opt/logs:ro
+      - ./logs/reporting:/var/log/reporting
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://iam-postgres:5432/reporting
+      - ELASTICSEARCH_URL=http://iam-elasticsearch:9200
+    working_dir: /app
+    command: >
+      bash -c "
+      pip install flask jinja2 psycopg2-binary elasticsearch matplotlib plotly pandas sqlalchemy &&
+      python app.py
+      "
+    depends_on:
+      - iam-postgres
+      - iam-elasticsearch
+    restart: unless-stopped
+    labels:
+      - "component=reporting"
+      - "service=reporting-engine"
+
+  iam-identity-analytics:
+    image: python:3.11-slim
+    container_name: iam-identity-analytics
+    hostname: analytics.iam-lab.local
+    networks:
+      iam-security-net:
+        ipv4_address: 172.20.7.20
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./monitoring/identity-analytics:/app
+      - ./logs:/opt/logs:ro
+      - ./logs/analytics:/var/log/analytics
+    environment:
+      - DATABASE_URL=postgresql://iam-postgres:5432/analytics
+      - REDIS_URL=redis://iam-redis:6379
+      - ELASTICSEARCH_URL=http://iam-elasticsearch:9200
+    command: >
+      bash -c "
+      pip install flask pandas numpy scikit-learn redis psycopg2-binary elasticsearch &&
+      python /app/identity-analytics-engine.py
+      "
+    depends_on:
+      - iam-postgres
+      - iam-redis
+      - iam-elasticsearch
+    restart: unless-stopped
+    labels:
+      - "component=analytics"
+      - "service=identity-analytics"
+
+# ============================================================================
+# Networks Configuration
+# ============================================================================
+
+networks:
+  iam-security-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: iam-lab-br
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
+      com.docker.network.driver.mtu: "1500"
+
+# ============================================================================
+# Volumes Configuration
+# ============================================================================
+
+volumes:
+  # Directory Services Data
+  ad_data:
+    driver: local
+    labels:
+      - "component=directory-services"
+      - "service=active-directory"
+  ad_sysvol:
+    driver: local
+    labels:
+      - "component=directory-services"
+      - "service=active-directory"
+  ldap_data:
+    driver: local
+    labels:
+      - "component=directory-services"
+      - "service=ldap"
+  ldap_logs:
+    driver: local
+    labels:
+      - "component=directory-services"
+      - "service=ldap"
+
+  # SSO and Authentication Data
+  keycloak_data:
+    driver: local
+    labels:
+      - "component=sso"
+      - "service=keycloak"
+  mfa_data:
+    driver: local
+    labels:
+      - "component=mfa"
+      - "service=mfa-server"
+
+  # PAM and Vault Data
+  vault_data:
+    driver: local
+    labels:
+      - "component=pam"
+      - "service=vault"
+  vault_logs:
+    driver: local
+    labels:
+      - "component=pam"
+      - "service=vault"
+  pam_data:
+    driver: local
+    labels:
+      - "component=pam"
+      - "service=pam-vault"
+
+  # Database Data
+  postgres_data:
+    driver: local
+    labels:
+      - "component=database"
+      - "service=postgres"
+  redis_data:
+    driver: local
+    labels:
+      - "component=cache"
+      - "service=redis"
+
+  # Monitoring Data
+  prometheus_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+      - "service=prometheus"
+  grafana_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+      - "service=grafana"
+  elasticsearch_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+      - "service=elasticsearch"
+  kibana_data:
+    driver: local
+    labels:
+      - "component=monitoring"
+      - "service=kibana"
+
+# ============================================================================
+# Secrets Configuration
+# ============================================================================
+
+secrets:
+  # Authentication Secrets
+  keycloak_admin_password:
+    file: ./secrets/keycloak/admin-password
+  keycloak_db_password:
+    file: ./secrets/keycloak/db-password
+  keycloak_client_secret:
+    file: ./secrets/keycloak/client-secret
+  
+  # Database Secrets
+  postgres_password:
+    file: ./secrets/database/postgres-password
+  redis_password:
+    file: ./secrets/database/redis-password
+  elastic_password:
+    file: ./secrets/database/elastic-password
+  
+  # PAM Secrets
+  conjur_admin_password:
+    file: ./secrets/pam/conjur-admin-password
+  
+  # Monitoring Secrets
+  grafana_admin_password:
+    file: ./secrets/monitoring/grafana-admin-password
+  
+  # External Service Secrets
+  twilio_account_sid:
+    file: ./secrets/external/twilio-account-sid
+  twilio_auth_token:
+    file: ./secrets/external/twilio-auth-token
+
+# ============================================================================
+# Health Checks and Monitoring Configuration
+# ============================================================================
+
+x-healthcheck-common: &healthcheck-common
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "100m"
+    max-file: "5"
+    labels: "component,service,security-level"
+
+# ============================================================================
+# Security Labels and Metadata
+# ============================================================================
+
+x-security-labels: &security-labels
+  security.scan: "true"
+  security.compliance: "required"
+  monitoring.enable: "true"
+  backup.enable: "true"

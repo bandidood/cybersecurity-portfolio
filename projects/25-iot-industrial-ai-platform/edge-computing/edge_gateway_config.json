@@ -1,0 +1,369 @@
+{
+  "gateway": {
+    "name": "Industrial-Edge-Gateway-01",
+    "location": "Factory-Floor-A",
+    "description": "Edge Computing Gateway pour traitement IoT industriel temps réel",
+    "version": "1.0.0",
+    "batch_size": 100,
+    "max_latency_ms": 5,
+    "buffer_size": 10000,
+    "processing_threads": 4
+  },
+  
+  "cache": {
+    "max_size_mb": 512,
+    "retention_hours": 168,
+    "cleanup_interval_minutes": 5,
+    "eviction_policy": "lru",
+    "persistence_enabled": true,
+    "backup_interval_hours": 24
+  },
+  
+  "compression": {
+    "enabled": true,
+    "level": 6,
+    "min_batch_size": 10,
+    "algorithm": "zlib",
+    "compress_threshold_bytes": 1024
+  },
+  
+  "connectivity": {
+    "connections": {
+      "primary_wifi": {
+        "type": "wifi",
+        "is_primary": true,
+        "ssid": "Factory-WiFi-5G",
+        "priority": 1,
+        "encryption": "WPA3",
+        "bandwidth_limit_mbps": 100,
+        "monitoring_interval_s": 10
+      },
+      "backup_4g": {
+        "type": "4g",
+        "is_primary": false,
+        "apn": "industrial.iot",
+        "priority": 2,
+        "data_limit_mb": 10000,
+        "monitoring_interval_s": 15
+      },
+      "emergency_satellite": {
+        "type": "satellite",
+        "is_primary": false,
+        "priority": 3,
+        "cost_per_mb": 5.0,
+        "emergency_only": true,
+        "monitoring_interval_s": 30
+      },
+      "ethernet_backup": {
+        "type": "ethernet",
+        "is_primary": false,
+        "interface": "eth1",
+        "priority": 1,
+        "speed_mbps": 1000,
+        "monitoring_interval_s": 5
+      }
+    },
+    "failover": {
+      "enabled": true,
+      "latency_threshold_ms": 500,
+      "error_threshold": 3,
+      "bandwidth_threshold_mbps": 1.0,
+      "signal_strength_threshold": 20,
+      "failover_cooldown_s": 300,
+      "auto_recovery": true
+    },
+    "load_balancing": {
+      "enabled": false,
+      "strategy": "round_robin",
+      "health_check_interval_s": 30
+    }
+  },
+  
+  "security": {
+    "encryption_enabled": true,
+    "tls_version": "1.3",
+    "certificate_validation": true,
+    "api_key_rotation_hours": 24,
+    "key_derivation": {
+      "algorithm": "PBKDF2HMAC",
+      "iterations": 100000,
+      "salt_length": 16
+    },
+    "access_control": {
+      "whitelist_enabled": true,
+      "allowed_sources": ["192.168.1.0/24", "10.0.0.0/8"],
+      "rate_limiting": {
+        "requests_per_minute": 1000,
+        "burst_limit": 100
+      }
+    }
+  },
+  
+  "cloud": {
+    "endpoint": "https://industrial-iot-hub.azure.com",
+    "backup_endpoints": [
+      "https://iot-backup-1.amazonaws.com",
+      "https://iot-backup-2.gcp.com"
+    ],
+    "batch_upload_interval_s": 30,
+    "max_retry_attempts": 3,
+    "timeout_s": 10,
+    "exponential_backoff": true,
+    "authentication": {
+      "type": "certificate",
+      "cert_file": "./certs/edge_gateway.pem",
+      "key_file": "./certs/edge_gateway_key.pem",
+      "ca_file": "./certs/ca.pem"
+    },
+    "data_validation": {
+      "enabled": true,
+      "schema_validation": true,
+      "checksum_verification": true
+    }
+  },
+  
+  "rules_engine": {
+    "enabled": true,
+    "max_rules": 1000,
+    "rule_timeout_ms": 100,
+    "parallel_execution": true,
+    "rule_persistence": true,
+    "default_rules": [
+      {
+        "rule_id": "temp_critical",
+        "sensor_pattern": "TEMP_*",
+        "condition": "value > 1000 or value < 500",
+        "action": "alert_critical_temperature",
+        "priority": 1,
+        "throttle_seconds": 60,
+        "description": "Température critique détectée"
+      },
+      {
+        "rule_id": "vibration_anomaly", 
+        "sensor_pattern": "VIB_*",
+        "condition": "anomaly_score > 0.8 and quality > 0.8",
+        "action": "alert_vibration_anomaly",
+        "priority": 2,
+        "throttle_seconds": 300,
+        "description": "Vibration anormale détectée"
+      },
+      {
+        "rule_id": "quality_degraded",
+        "sensor_pattern": "QUAL_*", 
+        "condition": "value < 90 and quality > 0.9",
+        "action": "alert_quality_degradation",
+        "priority": 3,
+        "throttle_seconds": 600,
+        "description": "Dégradation qualité produit"
+      },
+      {
+        "rule_id": "maintenance_due",
+        "sensor_pattern": "*",
+        "condition": "anomaly_score > 0.5 and quality < 0.7", 
+        "action": "schedule_maintenance",
+        "priority": 4,
+        "throttle_seconds": 1800,
+        "description": "Maintenance préventive requise"
+      },
+      {
+        "rule_id": "network_congestion",
+        "sensor_pattern": "*",
+        "condition": "timestamp % 100 == 0 and len(batch) > 500",
+        "action": "reduce_sampling_rate", 
+        "priority": 5,
+        "throttle_seconds": 120,
+        "description": "Congestion réseau détectée"
+      }
+    ]
+  },
+  
+  "monitoring": {
+    "enabled": true,
+    "metrics_collection": {
+      "performance_metrics": true,
+      "system_metrics": true,
+      "network_metrics": true,
+      "business_metrics": true,
+      "interval_seconds": 60
+    },
+    "alerting": {
+      "enabled": true,
+      "channels": ["log", "mqtt", "webhook"],
+      "thresholds": {
+        "cpu_usage_pct": 80,
+        "memory_usage_pct": 85,
+        "disk_usage_pct": 90,
+        "processing_latency_ms": 10,
+        "error_rate_pct": 5
+      }
+    },
+    "health_checks": {
+      "enabled": true,
+      "interval_seconds": 30,
+      "endpoints": [
+        {"name": "cache", "type": "internal"},
+        {"name": "rules_engine", "type": "internal"},
+        {"name": "connectivity", "type": "internal"},
+        {"name": "cloud_api", "type": "http", "url": "https://industrial-iot-hub.azure.com/health"}
+      ]
+    }
+  },
+  
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "handlers": [
+      {
+        "type": "console",
+        "level": "INFO",
+        "format": "%(levelname)s: %(message)s"
+      },
+      {
+        "type": "file", 
+        "level": "DEBUG",
+        "filename": "./logs/edge_gateway.log",
+        "max_size_mb": 100,
+        "backup_count": 5,
+        "rotation": "size"
+      },
+      {
+        "type": "syslog",
+        "level": "WARNING", 
+        "address": "localhost:514",
+        "facility": "local0"
+      }
+    ],
+    "structured_logging": {
+      "enabled": true,
+      "format": "json",
+      "include_fields": ["timestamp", "level", "module", "message", "metrics"]
+    }
+  },
+  
+  "performance": {
+    "profiling": {
+      "enabled": false,
+      "output_dir": "./profiling",
+      "sample_interval_s": 1
+    },
+    "optimization": {
+      "auto_batch_sizing": true,
+      "adaptive_compression": true,
+      "dynamic_caching": true,
+      "load_shedding": {
+        "enabled": true,
+        "cpu_threshold_pct": 95,
+        "memory_threshold_pct": 90
+      }
+    },
+    "benchmarking": {
+      "enabled": true,
+      "baseline_throughput_rps": 1000,
+      "baseline_latency_ms": 5,
+      "performance_alerts": true
+    }
+  },
+  
+  "data_processing": {
+    "enrichment": {
+      "enabled": true,
+      "add_timestamps": true,
+      "add_geolocation": true,
+      "add_device_metadata": true,
+      "correlation_window_s": 300
+    },
+    "filtering": {
+      "enabled": true,
+      "duplicate_detection": true,
+      "outlier_detection": true,
+      "quality_threshold": 0.5
+    },
+    "aggregation": {
+      "enabled": true,
+      "window_sizes": [60, 300, 900],
+      "functions": ["avg", "min", "max", "std", "count"],
+      "trigger_conditions": ["time_based", "count_based", "value_based"]
+    }
+  },
+  
+  "integration": {
+    "mqtt": {
+      "enabled": true,
+      "broker": "mqtt://localhost:1883",
+      "topics": {
+        "input": "sensors/+/data",
+        "output": "edge/processed/data",
+        "alerts": "edge/alerts",
+        "health": "edge/health"
+      },
+      "qos": 1,
+      "retain": false,
+      "keepalive": 60,
+      "clean_session": true
+    },
+    "modbus": {
+      "enabled": true,
+      "port": 502,
+      "slave_id": 1,
+      "timeout_s": 5,
+      "polling_interval_s": 10,
+      "registers": {
+        "holding": {"start": 0, "count": 100},
+        "input": {"start": 0, "count": 50}
+      }
+    },
+    "opcua": {
+      "enabled": false,
+      "server_url": "opc.tcp://localhost:4840",
+      "security_policy": "Basic256Sha256",
+      "security_mode": "SignAndEncrypt",
+      "session_timeout": 60000,
+      "subscription_interval": 1000
+    }
+  },
+  
+  "deployment": {
+    "environment": "production",
+    "auto_start": true,
+    "graceful_shutdown_timeout_s": 30,
+    "pid_file": "./edge_gateway.pid",
+    "working_directory": "./",
+    "user": "edge_gateway",
+    "group": "industrial",
+    "resource_limits": {
+      "max_memory_mb": 2048,
+      "max_cpu_cores": 4,
+      "max_file_descriptors": 65536,
+      "max_processes": 100
+    },
+    "watchdog": {
+      "enabled": true,
+      "restart_on_failure": true,
+      "max_restarts": 5,
+      "restart_delay_s": 30
+    }
+  },
+  
+  "maintenance": {
+    "auto_update": {
+      "enabled": false,
+      "update_channel": "stable",
+      "check_interval_hours": 24,
+      "maintenance_window": "02:00-04:00"
+    },
+    "backup": {
+      "enabled": true,
+      "interval_hours": 6,
+      "retention_days": 30,
+      "backup_location": "./backups",
+      "include_cache": false,
+      "compress_backups": true
+    },
+    "diagnostics": {
+      "enabled": true,
+      "self_test_interval_hours": 12,
+      "generate_reports": true,
+      "report_retention_days": 90
+    }
+  }
+}

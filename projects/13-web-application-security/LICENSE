@@ -1,0 +1,169 @@
+Licence MIT avec Dispositions de Sécurité et d'Usage Éthique
+
+Copyright (c) 2024 Projet Portfolio Cybersécurité
+
+La permission est accordée gratuitement à toute personne obtenant une copie
+de ce logiciel et des fichiers de documentation associés (le "Logiciel"), de traiter
+dans le Logiciel sans restriction, y compris sans limitation les droits
+d'utiliser, copier, modifier, fusionner, publier, distribuer, sous-licencier, et/ou vendre
+des copies du Logiciel, et de permettre aux personnes à qui le Logiciel est
+fourni de le faire, sous réserve des conditions suivantes :
+
+L'avis de copyright ci-dessus et cet avis d'autorisation doivent être inclus dans toutes
+les copies ou parties substantielles du Logiciel.
+
+CLAUSES DE SÉCURITÉ ET D'USAGE ÉTHIQUE :
+
+1. USAGE AUTORISÉ UNIQUEMENT
+   Ce framework de test de sécurité d'applications web et les outils associés sont
+   destinés aux tests de sécurité autorisés, à l'évaluation des vulnérabilités, et à
+   des fins éducatives uniquement. Les utilisateurs doivent obtenir une permission
+   écrite explicite avant de tester des systèmes, réseaux, ou applications qu'ils ne
+   possèdent pas ou pour lesquels ils n'ont pas accès autorisé.
+
+2. CONFORMITÉ LÉGALE
+   Les utilisateurs de ce logiciel doivent se conformer à toutes les lois locales,
+   nationales, et internationales applicables. Ceci inclut mais n'est pas limité aux
+   lois de fraude et abus informatique, réglementations de confidentialité, et
+   exigences de protection des données. Les utilisateurs sont seuls responsables de
+   s'assurer que leur utilisation de ce logiciel est légale dans leur juridiction.
+
+3. DIVULGATION RESPONSABLE
+   Toutes les vulnérabilités découvertes en utilisant ce logiciel doivent être signalées
+   par des processus de divulgation responsable. Les utilisateurs ne doivent pas utiliser
+   les vulnérabilités découvertes à des fins malveillantes, accès non autorisé, ou
+   causer du mal aux systèmes, données, ou individus.
+
+4. ÉTHIQUE PROFESSIONNELLE
+   Les utilisateurs doivent adhérer aux standards d'éthique cybersécurité professionnelle incluant :
+   - Maintenir la confidentialité de toutes les vulnérabilités découvertes
+   - Respecter la disponibilité du système et l'intégrité des données pendant les tests
+   - Suivre les règles d'engagement établies et limitations de portée
+   - Fournir des rapports précis et impartiaux des découvertes de sécurité
+   - Soutenir les efforts de remédiation et d'amélioration de sécurité
+
+5. USAGE ÉDUCATIF
+   Ce logiciel est conçu pour des fins éducatives et de développement professionnel
+   en cybersécurité. L'usage commercial pour services de test de sécurité nécessite
+   une licence professionnelle appropriée, assurance, et accords légaux avec les clients.
+
+6. AUCUN USAGE MALVEILLANT
+   Ce logiciel ne doit pas être utilisé pour :
+   - Accès non autorisé à des systèmes informatiques ou réseaux
+   - Hacking malveillant, vol de données, ou compromission de système
+   - Création, distribution, ou déploiement de malware ou payloads malveillants
+   - Conduire des attaques contre des systèmes sans autorisation appropriée
+   - Toute activité qui viole les lois de criminalité informatique ou réglementations
+
+7. PROTECTION DES DONNÉES
+   Les utilisateurs doivent implémenter des mesures appropriées de protection des données
+   lors de l'utilisation de ce logiciel, incluant :
+   - Chiffrement des données de test sensibles et preuves
+   - Anonymisation ou pseudonymisation des informations personnelles dans les rapports
+   - Stockage et disposition sécurisés des résultats de test et preuves
+   - Conformité avec les réglementations de protection des données (GDPR, CCPA, etc.)
+
+8. LIMITATION DE PORTÉE
+   Les activités de test doivent être limitées à la portée et systèmes autorisés uniquement.
+   Les utilisateurs ne doivent pas dépasser les limites convenues ou s'engager dans des
+   activités au-delà de leur niveau d'accès autorisé.
+
+9. RÉPONSE AUX INCIDENTS
+   En cas d'impact non intentionnel ou incident de sécurité pendant les tests, les
+   utilisateurs doivent immédiatement :
+   - Arrêter les activités de test qui peuvent causer l'impact
+   - Notifier les parties prenantes concernées et propriétaires du système
+   - Coopérer avec les efforts de réponse aux incidents et remédiation
+   - Documenter l'incident pour leçons apprises et amélioration des processus
+
+10. GESTION DES VULNÉRABILITÉS
+    Les utilisateurs découvrant des vulnérabilités dans ce framework logiciel lui-même
+    doivent les signaler de manière responsable aux mainteneurs par les canaux
+    établis de divulgation de sécurité.
+
+11. FORMATION ET COMPÉTENCE
+    Les utilisateurs devraient avoir une formation appropriée et compétence en
+    cybersécurité et test de sécurité d'applications web avant d'utiliser les
+    fonctionnalités avancées de ce logiciel. Les utilisateurs inexpérimentés
+    devraient chercher formation appropriée et supervision.
+
+12. ASSURANCE ET RESPONSABILITÉ
+    Les utilisateurs professionnels conduisant des services de test de sécurité
+    devraient maintenir une assurance responsabilité professionnelle appropriée et
+    accords légaux qui limitent la responsabilité pour les activités de test.
+
+13. CONFORMITÉ OWASP
+    Lors de l'utilisation des composants OWASP Top 10 et ASVS de ce framework, les
+    utilisateurs doivent se conformer aux guidelines éthiques et meilleures pratiques
+    établies par l'OWASP Foundation pour les tests de sécurité d'applications web.
+
+14. TESTS D'APPLICATIONS WEB SPÉCIFIQUES
+    Pour les tests spécifiquement d'applications web :
+    - Ne pas perturber les opérations normales ou disponibilité du service
+    - Respecter les termes de service et conditions d'usage des applications testées
+    - Éviter l'accès ou modification de données de production non autorisées
+    - Suivre les meilleures pratiques pour tests de sécurité non-intrusifs
+
+LE LOGICIEL EST FOURNI "TEL QUEL", SANS GARANTIE D'AUCUNE SORTE, EXPRESSE OU
+IMPLICITE, Y COMPRIS MAIS SANS LIMITATION LES GARANTIES DE COMMERCIALISATION,
+ADÉQUATION À UN USAGE PARTICULIER ET NON-CONTREFAÇON. EN AUCUN CAS LES
+AUTEURS OU DÉTENTEURS DE COPYRIGHT NE SERONT RESPONSABLES POUR TOUTE
+RÉCLAMATION, DOMMAGES OU AUTRE RESPONSABILITÉ, QUE CE SOIT DANS UNE ACTION
+CONTRACTUELLE, DÉLICTUELLE OU AUTRE, DÉCOULANT DE, HORS DE OU EN CONNEXION
+AVEC LE LOGICIEL OU L'USAGE OU AUTRES TRANSACTIONS DANS LE LOGICIEL.
+
+DÉNI DE RESPONSABILITÉ ADDITIONNELS :
+
+DÉNI DE RESPONSABILITÉ DE TEST DE SÉCURITÉ :
+Les auteurs et contributeurs de ce logiciel déclinent toute responsabilité pour
+mauvais usage de ces outils ou dommages résultant d'activités de test de
+sécurité d'applications web. Les utilisateurs sont seuls responsables de leurs
+activités de test et toutes conséquences en découlant.
+
+DÉNI DE RESPONSABILITÉ LÉGAL :
+Ce logiciel est fourni pour fins éducatives et de test de sécurité autorisé
+uniquement. Les auteurs n'encouragent ni ne supportent tout usage illégal ou
+non éthique de ces outils. Les utilisateurs doivent s'assurer de la conformité
+avec toutes les lois et réglementations applicables.
+
+DÉNI DE RESPONSABILITÉ DE PRÉCISION :
+Bien que des efforts aient été faits pour assurer la précision et fiabilité de
+ce logiciel, les auteurs ne font aucune garantie sur la complétude ou précision
+de la détection de vulnérabilités ou évaluations de sécurité réalisées en
+utilisant ces outils.
+
+DÉNI DE RESPONSABILITÉ DES SERVICES PROFESSIONNELS :
+Ce logiciel open-source ne constitue pas des services de conseil en sécurité
+professionnelle. Les utilisateurs nécessitant des services professionnels de
+test de sécurité devraient engager des professionnels cybersécurité qualifiés
+avec les accréditations et couverture d'assurance appropriées.
+
+DÉNI DE RESPONSABILITÉ DES OUTILS TIERS :
+Ce framework peut intégrer avec ou référencer des outils de sécurité tiers.
+Les utilisateurs sont responsables de se conformer aux licences et conditions
+d'usage pour tous les outils tiers et s'assurer qu'ils sont utilisés de manière
+appropriée et légale.
+
+DÉNI DE RESPONSABILITÉ OWASP :
+Bien que ce framework implémente des méthodologies OWASP, il n'est pas officiellement
+endossé par l'OWASP Foundation. Les utilisateurs devraient se référer à la
+documentation officielle OWASP pour les guidelines et meilleures pratiques
+les plus à jour.
+
+AVIS DE CONTRÔLE D'EXPORTATION :
+Ce logiciel peut contenir des fonctionnalités cryptographiques et outils de
+sécurité qui peuvent être sujets aux lois et réglementations de contrôle
+d'exportation. Les utilisateurs sont responsables de se conformer aux
+exigences de contrôle d'exportation applicables dans leur juridiction.
+
+En utilisant ce logiciel, vous reconnaissez avoir lu, compris, et accepté d'être
+lié par ces termes et conditions. Si vous n'acceptez pas ces termes, vous ne
+pouvez pas utiliser ce logiciel.
+
+Pour questions sur la licence, usage professionnel, ou divulgations de sécurité,
+veuillez contacter : security@cybersecurity-portfolio.dev
+
+---
+
+Dernière mise à jour : 28 janvier 2024
+Version : 1.0

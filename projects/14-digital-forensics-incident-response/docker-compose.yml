@@ -1,0 +1,939 @@
+# ============================================================================
+# Docker Compose - Digital Forensics & Incident Response Lab
+# ============================================================================
+# Professional forensic analysis and incident response environment
+# Supports NIST, SANS, and international forensic standards
+# Version: 1.0.0
+# Last Updated: January 28, 2024
+# ============================================================================
+
+version: '3.8'
+
+# ============================================================================
+# NETWORKS - Isolated forensic networks for security and analysis
+# ============================================================================
+
+networks:
+  # Forensic analysis network - Completely isolated
+  forensic-isolated:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-forensic
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+
+  # Analysis network - Secure with limited internet access
+  analysis-secure:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+          gateway: 172.21.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-analysis
+
+  # Monitoring network - For logging and monitoring systems
+  monitoring-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/16
+          gateway: 172.22.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-monitoring
+
+  # Management network - For administrative access
+  mgmt-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.23.0.0/16
+          gateway: 172.23.0.1
+
+  # Internet access network - Controlled internet access
+  internet-access:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.24.0.0/16
+          gateway: 172.24.0.1
+
+# ============================================================================
+# VOLUMES - Persistent storage for evidence and analysis data
+# ============================================================================
+
+volumes:
+  # Evidence storage - High-security storage for digital evidence
+  evidence-storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/evidence
+      o: bind
+
+  # Case management data
+  case-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/cases
+      o: bind
+
+  # Forensic tools and configurations
+  forensic-tools:
+    driver: local
+
+  # Analysis workspaces
+  analysis-workspace:
+    driver: local
+
+  # Timeline data and databases
+  timeline-data:
+    driver: local
+
+  # Malware analysis sandbox
+  malware-sandbox:
+    driver: local
+
+  # Threat intelligence data
+  threat-intel-data:
+    driver: local
+
+  # Log storage
+  forensic-logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/logs
+      o: bind
+
+  # Database storage
+  postgresql-data:
+    driver: local
+
+  elasticsearch-data:
+    driver: local
+
+  # SSL certificates and secrets
+  ssl-certs:
+    driver: local
+
+  vault-data:
+    driver: local
+
+  # Backup storage
+  backup-storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/backup
+      o: bind
+
+# ============================================================================
+# SERVICES - Complete forensic analysis and incident response stack
+# ============================================================================
+
+services:
+
+  # ========================================================================
+  # FORENSIC WORKSTATION - Main analysis environment
+  # ========================================================================
+
+  forensic-workstation:
+    build:
+      context: ./docker/forensic-workstation
+      dockerfile: Dockerfile
+      args:
+        - SLEUTHKIT_VERSION=4.12.0
+        - AUTOPSY_VERSION=4.20.0
+        - VOLATILITY_VERSION=3.2.1
+        - PLASO_VERSION=20231218
+        - YARA_VERSION=4.4.0
+    container_name: forensic-workstation
+    hostname: forensic-ws
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+      - DAC_READ_SEARCH
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    volumes:
+      - evidence-storage:/evidence:rw
+      - case-data:/cases:rw
+      - forensic-tools:/opt/forensic-tools:rw
+      - analysis-workspace:/workspace:rw
+      - timeline-data:/timeline:rw
+      - forensic-logs:/logs:rw
+      - /dev:/dev:ro
+      - /sys/fs:/sys/fs:ro
+      - ./scripts:/scripts:ro
+      - ./configs/forensic-tools:/config:ro
+    networks:
+      - forensic-isolated
+      - analysis-secure
+      - mgmt-net
+    environment:
+      - FORENSIC_LAB=true
+      - CHAIN_OF_CUSTODY=enabled
+      - EVIDENCE_ENCRYPTION=true
+      - AUDIT_LOGGING=enabled
+      - TIMEZONE=UTC
+      - SLEUTHKIT_HOME=/opt/sleuthkit
+      - AUTOPSY_HOME=/opt/autopsy
+      - VOLATILITY_HOME=/opt/volatility3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.forensic-ws.rule=Host(`forensic.lab.local`)"
+      - "traefik.http.services.forensic-ws.loadbalancer.server.port=8080"
+    ports:
+      - "8080:8080"  # Autopsy web interface
+      - "2222:22"    # SSH access
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/autopsy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ========================================================================
+  # INCIDENT RESPONSE PLATFORM
+  # ========================================================================
+
+  # TheHive - Case management and incident tracking
+  thehive:
+    image: strangebee/thehive:5.2
+    container_name: thehive
+    hostname: thehive
+    restart: unless-stopped
+    volumes:
+      - case-data:/opt/thehive/data:rw
+      - forensic-logs:/opt/thehive/logs:rw
+      - ./configs/thehive:/etc/thehive:ro
+    networks:
+      - analysis-secure
+      - mgmt-net
+    environment:
+      - TH_SECRET=changeme-forensic-secret-key-2024
+      - TH_DB_PROVIDER=postgresql
+      - TH_DB_HOST=postgresql
+      - TH_DB_PORT=5432
+      - TH_DB_NAME=thehive
+      - TH_DB_USER=thehive
+      - TH_DB_PASSWORD=thehive_password
+      - TH_INDEX_PROVIDER=elasticsearch
+      - TH_INDEX_HOST=elasticsearch
+      - TH_INDEX_PORT=9200
+      - TH_MAX_DOCS_PER_FOLDER=1000
+    depends_on:
+      - postgresql
+      - elasticsearch
+    ports:
+      - "9000:9000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.thehive.rule=Host(`thehive.lab.local`)"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Cortex - Observable analysis engine
+  cortex:
+    image: thehiveproject/cortex:3.1.7
+    container_name: cortex
+    hostname: cortex
+    restart: unless-stopped
+    volumes:
+      - threat-intel-data:/tmp/cortex-jobs:rw
+      - ./configs/cortex:/etc/cortex:ro
+    networks:
+      - analysis-secure
+      - internet-access
+    environment:
+      - CORTEX_SECRET=cortex-forensic-secret-2024
+      - CORTEX_DB_HOST=elasticsearch
+      - CORTEX_DB_PORT=9200
+      - CORTEX_ANALYZERS_URLS=https://download.thehive-project.org/analyzers.json
+    depends_on:
+      - elasticsearch
+    ports:
+      - "9001:9001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cortex.rule=Host(`cortex.lab.local`)"
+
+  # MISP - Threat intelligence platform
+  misp:
+    image: coolacid/misp-docker:core-latest
+    container_name: misp
+    hostname: misp
+    restart: unless-stopped
+    volumes:
+      - threat-intel-data:/var/www/MISP/app/files:rw
+      - ssl-certs:/etc/ssl/certs:ro
+      - ./configs/misp:/etc/misp:ro
+    networks:
+      - analysis-secure
+      - internet-access
+    environment:
+      - MISP_ADMIN_EMAIL=admin@forensics.lab.local
+      - MISP_ADMIN_PASSPHRASE=admin_password_change_me
+      - MISP_BASEURL=https://misp.lab.local
+      - MISP_ORG=Forensics_Lab
+      - MYSQL_HOST=misp-db
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp_password
+    depends_on:
+      - misp-db
+      - redis
+    ports:
+      - "80:80"
+      - "443:443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.misp.rule=Host(`misp.lab.local`)"
+
+  # MISP Database
+  misp-db:
+    image: mysql:8.0
+    container_name: misp-db
+    hostname: misp-db
+    restart: unless-stopped
+    volumes:
+      - ./configs/mysql:/etc/mysql/conf.d:ro
+    networks:
+      - analysis-secure
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password_change_me
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp_password
+    command: --default-authentication-plugin=mysql_native_password
+
+  # ========================================================================
+  # MALWARE ANALYSIS ENVIRONMENT
+  # ========================================================================
+
+  # Cuckoo Sandbox - Automated malware analysis
+  cuckoo-sandbox:
+    build:
+      context: ./docker/cuckoo
+      dockerfile: Dockerfile
+    container_name: cuckoo-sandbox
+    hostname: cuckoo
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    volumes:
+      - malware-sandbox:/opt/cuckoo:rw
+      - evidence-storage:/evidence:ro
+      - forensic-logs:/var/log/cuckoo:rw
+      - ./configs/cuckoo:/etc/cuckoo:ro
+    networks:
+      - forensic-isolated
+      - analysis-secure
+    environment:
+      - CUCKOO_WEB=true
+      - CUCKOO_API=true
+      - CUCKOO_DISTRIBUTED=true
+      - CUCKOO_MACHINERY=vmware
+      - CUCKOO_TIMEOUT=300
+    ports:
+      - "8000:8000"  # Cuckoo web interface
+      - "8090:8090"  # Cuckoo API
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cuckoo.rule=Host(`cuckoo.lab.local`)"
+
+  # REMnux - Malware analysis toolkit
+  remnux:
+    image: remnux/remnux-distro:focal
+    container_name: remnux
+    hostname: remnux
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - malware-sandbox:/samples:rw
+      - analysis-workspace:/workspace:rw
+      - forensic-logs:/logs:rw
+      - ./scripts/malware:/scripts:ro
+    networks:
+      - forensic-isolated
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=remnux_vnc_pass
+    ports:
+      - "5901:5901"  # VNC access
+      - "6080:6080"  # noVNC web access
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.remnux.rule=Host(`remnux.lab.local`)"
+
+  # ========================================================================
+  # TIMELINE ANALYSIS
+  # ========================================================================
+
+  # Plaso/Timesketch - Timeline analysis
+  timesketch:
+    image: us-docker.pkg.dev/osdfir-registry/timesketch/timesketch:latest
+    container_name: timesketch
+    hostname: timesketch
+    restart: unless-stopped
+    volumes:
+      - timeline-data:/var/timesketch:rw
+      - evidence-storage:/evidence:ro
+      - ./configs/timesketch:/etc/timesketch:ro
+    networks:
+      - analysis-secure
+      - mgmt-net
+    environment:
+      - TIMESKETCH_USER=admin
+      - TIMESKETCH_PASSWORD=admin_password
+      - POSTGRES_USER=timesketch
+      - POSTGRES_PASSWORD=timesketch_password
+      - POSTGRES_HOST=postgresql
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=timesketch
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgresql
+      - elasticsearch
+      - redis
+    ports:
+      - "5000:5000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.timesketch.rule=Host(`timesketch.lab.local`)"
+
+  # Plaso worker for timeline processing
+  plaso-worker:
+    build:
+      context: ./docker/plaso
+      dockerfile: Dockerfile
+    container_name: plaso-worker
+    hostname: plaso-worker
+    restart: unless-stopped
+    volumes:
+      - timeline-data:/plaso:rw
+      - evidence-storage:/evidence:ro
+      - forensic-logs:/logs:rw
+    networks:
+      - forensic-isolated
+      - analysis-secure
+    environment:
+      - PLASO_WORKERS=4
+      - PLASO_OUTPUT=/plaso/output
+      - PLASO_TEMP=/plaso/temp
+    command: ["sleep", "infinity"]
+
+  # ========================================================================
+  # NETWORK FORENSICS
+  # ========================================================================
+
+  # NetworkMiner - Network forensic analysis
+  networkminer:
+    build:
+      context: ./docker/networkminer
+      dockerfile: Dockerfile
+    container_name: networkminer
+    hostname: networkminer
+    restart: unless-stopped
+    volumes:
+      - evidence-storage:/evidence:ro
+      - analysis-workspace:/workspace:rw
+      - forensic-logs:/logs:rw
+    networks:
+      - analysis-secure
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=networkminer_pass
+    ports:
+      - "5902:5901"  # VNC access
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.networkminer.rule=Host(`networkminer.lab.local`)"
+
+  # Wireshark - Network protocol analyzer
+  wireshark:
+    build:
+      context: ./docker/wireshark
+      dockerfile: Dockerfile
+    container_name: wireshark
+    hostname: wireshark
+    restart: unless-stopped
+    volumes:
+      - evidence-storage:/evidence:ro
+      - analysis-workspace:/workspace:rw
+      - forensic-logs:/logs:rw
+    networks:
+      - analysis-secure
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=wireshark_pass
+    ports:
+      - "5903:5901"  # VNC access
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wireshark.rule=Host(`wireshark.lab.local`)"
+
+  # ========================================================================
+  # DATABASE SYSTEMS
+  # ========================================================================
+
+  # PostgreSQL - Primary database for case management
+  postgresql:
+    image: postgres:15
+    container_name: postgresql
+    hostname: postgresql
+    restart: unless-stopped
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data:rw
+      - ./configs/postgresql:/etc/postgresql:ro
+      - forensic-logs:/var/log/postgresql:rw
+    networks:
+      - analysis-secure
+    environment:
+      - POSTGRES_DB=forensics
+      - POSTGRES_USER=forensics
+      - POSTGRES_PASSWORD=forensics_password
+      - POSTGRES_MULTIPLE_DATABASES=thehive,timesketch,cortex
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forensics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Redis - Caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    hostname: redis
+    restart: unless-stopped
+    volumes:
+      - ./configs/redis:/usr/local/etc/redis:ro
+      - forensic-logs:/var/log/redis:rw
+    networks:
+      - analysis-secure
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ========================================================================
+  # MONITORING AND LOGGING
+  # ========================================================================
+
+  # Elasticsearch - Log storage and search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    hostname: elasticsearch
+    restart: unless-stopped
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data:rw
+      - ./configs/elasticsearch:/usr/share/elasticsearch/config:ro
+      - forensic-logs:/var/log/elasticsearch:rw
+    networks:
+      - monitoring-net
+      - analysis-secure
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - cluster.name=forensics-cluster
+      - node.name=forensics-node
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Logstash - Log processing pipeline
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: logstash
+    hostname: logstash
+    restart: unless-stopped
+    volumes:
+      - ./configs/logstash:/usr/share/logstash/pipeline:ro
+      - ./configs/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - forensic-logs:/logs:ro
+    networks:
+      - monitoring-net
+    environment:
+      - LS_JAVA_OPTS=-Xmx1g -Xms1g
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5044:5044"  # Beats input
+      - "9600:9600"  # Logstash monitoring
+
+  # Kibana - Log visualization and dashboards
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    hostname: kibana
+    restart: unless-stopped
+    volumes:
+      - ./configs/kibana:/usr/share/kibana/config:ro
+    networks:
+      - monitoring-net
+      - mgmt-net
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana.lab.local
+      - XPACK_SECURITY_ENABLED=false
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kibana.rule=Host(`kibana.lab.local`)"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    volumes:
+      - ./configs/grafana:/etc/grafana:ro
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - forensic-logs:/var/log/grafana:rw
+    networks:
+      - monitoring-net
+      - mgmt-net
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    ports:
+      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.lab.local`)"
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./configs/prometheus:/etc/prometheus:ro
+      - forensic-logs:/var/log/prometheus:rw
+    networks:
+      - monitoring-net
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+
+  # ========================================================================
+  # SECURITY SERVICES
+  # ========================================================================
+
+  # HashiCorp Vault - Secrets management
+  vault:
+    image: vault:1.15.0
+    container_name: vault
+    hostname: vault
+    restart: unless-stopped
+    volumes:
+      - vault-data:/vault/data:rw
+      - ssl-certs:/vault/certs:ro
+      - ./configs/vault:/vault/config:ro
+    networks:
+      - mgmt-net
+    environment:
+      - VAULT_ADDR=https://0.0.0.0:8200
+      - VAULT_API_ADDR=https://vault.lab.local:8200
+      - VAULT_CLUSTER_ADDR=https://0.0.0.0:8201
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "8200:8200"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vault.rule=Host(`vault.lab.local`)"
+    command: vault server -config=/vault/config/vault.hcl
+
+  # Falco - Runtime security monitoring
+  falco:
+    image: falcosecurity/falco:0.36.0
+    container_name: falco
+    hostname: falco
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock:ro
+      - /dev:/host/dev:ro
+      - /proc:/host/proc:ro:shared
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - /etc:/host/etc:ro
+      - ./configs/falco:/etc/falco:ro
+      - forensic-logs:/var/log/falco:rw
+    networks:
+      - monitoring-net
+    environment:
+      - FALCO_GRPC_ENABLED=true
+      - FALCO_GRPC_BIND_ADDRESS=0.0.0.0:5060
+    ports:
+      - "5060:5060"
+
+  # ========================================================================
+  # AUTOMATION AND ORCHESTRATION
+  # ========================================================================
+
+  # SOAR Platform - Security orchestration and automation
+  phantom:
+    build:
+      context: ./docker/phantom
+      dockerfile: Dockerfile
+    container_name: phantom
+    hostname: phantom
+    restart: unless-stopped
+    volumes:
+      - ./configs/phantom:/opt/phantom/etc:ro
+      - forensic-logs:/opt/phantom/logs:rw
+    networks:
+      - analysis-secure
+      - internet-access
+    environment:
+      - PHANTOM_BASE_URL=https://phantom.lab.local
+      - PHANTOM_DB_HOST=postgresql
+      - PHANTOM_DB_PORT=5432
+      - PHANTOM_DB_NAME=phantom
+      - PHANTOM_DB_USER=phantom
+      - PHANTOM_DB_PASSWORD=phantom_password
+    depends_on:
+      - postgresql
+    ports:
+      - "8443:443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phantom.rule=Host(`phantom.lab.local`)"
+
+  # ========================================================================
+  # REVERSE PROXY AND LOAD BALANCER
+  # ========================================================================
+
+  # Traefik - Reverse proxy and load balancer
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    hostname: traefik
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configs/traefik:/etc/traefik:ro
+      - ssl-certs:/etc/ssl/certs:ro
+      - forensic-logs:/var/log/traefik:rw
+    networks:
+      - mgmt-net
+      - analysis-secure
+      - monitoring-net
+    environment:
+      - TRAEFIK_API_DASHBOARD=true
+      - TRAEFIK_PROVIDERS_DOCKER=true
+      - TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT=false
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.lab.local`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+  # ========================================================================
+  # UTILITIES AND TOOLS
+  # ========================================================================
+
+  # Portainer - Container management
+  portainer:
+    image: portainer/portainer-ce:2.19.0
+    container_name: portainer
+    hostname: portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./configs/portainer:/data:rw
+    networks:
+      - mgmt-net
+    ports:
+      - "9443:9443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.lab.local`)"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+  # Watchtower - Automated container updates
+  watchtower:
+    image: containrrr/watchtower:1.6.0
+    container_name: watchtower
+    hostname: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./configs/watchtower:/config:ro
+    networks:
+      - mgmt-net
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 2 * * *  # Daily at 2 AM
+      - WATCHTOWER_NOTIFICATIONS=email
+      - WATCHTOWER_NOTIFICATION_EMAIL_FROM=watchtower@forensics.lab.local
+      - WATCHTOWER_NOTIFICATION_EMAIL_TO=admin@forensics.lab.local
+    command: --debug --cleanup --schedule "0 0 2 * * *"
+
+  # ========================================================================
+  # BACKUP AND ARCHIVAL
+  # ========================================================================
+
+  # Restic - Backup solution for evidence and case data
+  restic-backup:
+    image: restic/restic:0.16.0
+    container_name: restic-backup
+    hostname: restic-backup
+    restart: unless-stopped
+    volumes:
+      - evidence-storage:/data/evidence:ro
+      - case-data:/data/cases:ro
+      - forensic-logs:/data/logs:ro
+      - backup-storage:/backups:rw
+      - ./scripts/backup:/scripts:ro
+    networks:
+      - mgmt-net
+    environment:
+      - RESTIC_REPOSITORY=/backups
+      - RESTIC_PASSWORD_FILE=/scripts/restic_password
+      - BACKUP_SCHEDULE=0 1 * * *  # Daily at 1 AM
+      - RETENTION_POLICY=--keep-daily 30 --keep-weekly 12 --keep-monthly 12
+    command: ["sleep", "infinity"]
+
+  # ========================================================================
+  # TESTING AND VALIDATION
+  # ========================================================================
+
+  # Test evidence generator - For training and validation
+  evidence-generator:
+    build:
+      context: ./docker/evidence-generator
+      dockerfile: Dockerfile
+    container_name: evidence-generator
+    hostname: evidence-gen
+    restart: unless-stopped
+    volumes:
+      - evidence-storage:/output:rw
+      - ./configs/evidence-generator:/config:ro
+    networks:
+      - forensic-isolated
+    environment:
+      - GENERATE_DISK_IMAGES=true
+      - GENERATE_MEMORY_DUMPS=true
+      - GENERATE_NETWORK_CAPTURES=true
+      - OUTPUT_PATH=/output/test-evidence
+    command: ["sleep", "infinity"]
+
+  # Forensic validation service
+  forensic-validator:
+    build:
+      context: ./docker/forensic-validator
+      dockerfile: Dockerfile
+    container_name: forensic-validator
+    hostname: forensic-validator
+    restart: unless-stopped
+    volumes:
+      - evidence-storage:/evidence:ro
+      - case-data:/cases:ro
+      - forensic-logs:/logs:rw
+      - ./scripts/validation:/scripts:ro
+    networks:
+      - forensic-isolated
+    environment:
+      - VALIDATION_SCHEDULE=0 */6 * * *  # Every 6 hours
+      - HASH_ALGORITHMS=SHA256,SHA512,MD5
+      - CHAIN_OF_CUSTODY_CHECK=enabled
+    command: ["sleep", "infinity"]
+
+# ============================================================================
+# HEALTHCHECK AND MONITORING
+# ============================================================================
+
+  # Overall system health monitor
+  health-monitor:
+    build:
+      context: ./docker/health-monitor
+      dockerfile: Dockerfile
+    container_name: health-monitor
+    hostname: health-monitor
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - forensic-logs:/logs:rw
+      - ./scripts/monitoring:/scripts:ro
+    networks:
+      - monitoring-net
+      - mgmt-net
+    environment:
+      - MONITOR_INTERVAL=60
+      - ALERT_EMAIL=admin@forensics.lab.local
+      - ALERT_WEBHOOK=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+    ports:
+      - "8088:8088"
+    command: ["python3", "/scripts/health_monitor.py"]
+
+# ============================================================================
+# END OF DOCKER COMPOSE
+# ============================================================================

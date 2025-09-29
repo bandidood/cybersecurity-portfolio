@@ -1,0 +1,526 @@
+version: '3.8'
+
+# SOC SOAR Platform - Complete Docker Compose Setup
+# TheHive + Cortex + Elasticsearch + Cassandra + MISP Integration
+# Author: SOC Team
+# Version: 1.0.0
+
+services:
+  # Elasticsearch cluster for data storage and indexing
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.4
+    container_name: soc-elasticsearch
+    environment:
+      - node.name=soc-elasticsearch
+      - cluster.name=soc-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 3g
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./configs/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Kibana for Elasticsearch visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.4
+    container_name: soc-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana.soc.local
+      - SERVER_HOST=0.0.0.0
+    ports:
+      - "5601:5601"
+    networks:
+      - soc-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./configs/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Cassandra database for TheHive
+  cassandra:
+    image: cassandra:4.1
+    container_name: soc-thehive-db
+    environment:
+      - CASSANDRA_CLUSTER_NAME=thehive
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch
+      - MAX_HEAP_SIZE=2G
+      - HEAP_NEWSIZE=400m
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./configs/cassandra/cassandra.yaml:/etc/cassandra/cassandra.yaml:ro
+    ports:
+      - "9042:9042"
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 3g
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: soc-redis
+    command: redis-server --appendonly yes --requirepass redis-password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # TheHive - Case Management Platform
+  thehive:
+    image: strangebee/thehive:5.2
+    container_name: soc-thehive
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - thehive_data:/opt/thp/thehive/data
+      - thehive_index:/opt/thp/thehive/index
+      - ./configs/thehive/application.conf:/etc/thehive/application.conf:ro
+      - ./configs/thehive/logback.xml:/etc/thehive/logback.xml:ro
+      - ./configs/ssl:/opt/thehive/conf/ssl:ro
+      - ./data/thehive/files:/opt/thehive/data/files
+      - ./templates:/opt/thehive/conf/templates:ro
+    environment:
+      - JVM_OPTS=-Xms2g -Xmx2g
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/status"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.thehive.rule=Host(`thehive.soc.local`)"
+      - "traefik.http.routers.thehive.entrypoints=web,websecure"
+      - "traefik.http.routers.thehive.tls=true"
+
+  # Cortex - Security Analyzers and Responders
+  cortex:
+    image: thehiveproject/cortex:3.1.7
+    container_name: soc-cortex
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "9001:9001"
+    volumes:
+      - cortex_data:/tmp/cortex-jobs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configs/cortex/application.conf:/etc/cortex/application.conf:ro
+      - ./configs/cortex/logback.xml:/etc/cortex/logback.xml:ro
+      - ./data/cortex/analyzers:/opt/cortex/analyzers:ro
+      - ./data/cortex/responders:/opt/cortex/responders:ro
+      - ./data/cortex/jobs:/tmp/cortex-jobs
+    environment:
+      - JVM_OPTS=-Xms1g -Xmx1g
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/api/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cortex.rule=Host(`cortex.soc.local`)"
+      - "traefik.http.routers.cortex.entrypoints=web,websecure"
+      - "traefik.http.routers.cortex.tls=true"
+
+  # MISP - Malware Information Sharing Platform
+  misp:
+    image: coolacid/misp-docker:core-latest
+    container_name: soc-misp
+    depends_on:
+      - misp-db
+      - redis
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - misp_data:/var/www/MISP
+      - ./configs/misp/config.php:/var/www/MISP/app/Config/config.php:ro
+      - ./configs/misp/database.php:/var/www/MISP/app/Config/database.php:ro
+      - ./configs/ssl:/etc/ssl/private:ro
+    environment:
+      - MYSQL_HOST=misp-db
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp-db-password
+      - MISP_ADMIN_EMAIL=admin@soc.local
+      - MISP_ADMIN_PASSPHRASE=admin-password-change-me
+      - MISP_BASEURL=https://misp.soc.local
+      - TIMEZONE=Europe/Brussels
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/users/login"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.misp.rule=Host(`misp.soc.local`)"
+      - "traefik.http.routers.misp.entrypoints=web,websecure"
+      - "traefik.http.routers.misp.tls=true"
+
+  # MySQL database for MISP
+  misp-db:
+    image: mysql:8.0
+    container_name: soc-misp-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=root-password-change-me
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp
+      - MYSQL_PASSWORD=misp-db-password
+    volumes:
+      - misp_db_data:/var/lib/mysql
+      - ./configs/mysql/misp-init.sql:/docker-entrypoint-initdb.d/misp-init.sql:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "misp", "-pmisp-db-password"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Shuffle - SOAR Workflow Orchestration
+  shuffle-backend:
+    image: ghcr.io/shuffle/shuffle-backend:latest
+    container_name: soc-shuffle-backend
+    hostname: shuffle-backend
+    ports:
+      - "5001:5001"
+    volumes:
+      - shuffle_data:/shuffle-files
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DATASTORE_EMULATOR_HOST=shuffle-database:8000
+      - SHUFFLE_APP_HOTLOAD_FOLDER=/shuffle-files
+      - SHUFFLE_FILE_LOCATION=/shuffle-files
+      - ORG_ID=Shuffle
+      - SHUFFLE_APP_DOWNLOAD_LOCATION=/shuffle-files
+      - SHUFFLE_DEFAULT_USERNAME=admin@soc.local
+      - SHUFFLE_DEFAULT_PASSWORD=shuffle-admin-password
+      - SHUFFLE_DEFAULT_APIKEY=shuffle-api-key
+    networks:
+      - soc-network
+    depends_on:
+      - shuffle-database
+    restart: unless-stopped
+
+  # Shuffle Database
+  shuffle-database:
+    image: frikky/shuffle:database
+    container_name: soc-shuffle-database
+    hostname: shuffle-database
+    ports:
+      - "8000:8000"
+    volumes:
+      - shuffle_db_data:/etc/shuffle
+    environment:
+      - DATASTORE_EMULATOR_HOST=0.0.0.0:8000
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # Shuffle Frontend
+  shuffle-frontend:
+    image: ghcr.io/shuffle/shuffle-frontend:latest
+    container_name: soc-shuffle-frontend
+    hostname: shuffle-frontend
+    ports:
+      - "3001:80"
+      - "3443:443"
+    environment:
+      - BACKEND_HOSTNAME=shuffle-backend
+    networks:
+      - soc-network
+    depends_on:
+      - shuffle-backend
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.shuffle.rule=Host(`shuffle.soc.local`)"
+      - "traefik.http.routers.shuffle.entrypoints=web,websecure"
+      - "traefik.http.routers.shuffle.tls=true"
+
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.0
+    container_name: soc-traefik
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.email=admin@soc.local
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --log.level=INFO
+      - --accesslog=true
+      - --metrics.prometheus=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/letsencrypt
+      - ./configs/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./configs/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    networks:
+      - soc-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.soc.local`)"
+      - "traefik.http.routers.traefik.entrypoints=web,websecure"
+      - "traefik.http.routers.traefik.tls=true"
+
+  # Grafana for Monitoring and Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: soc-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=grafana-admin-password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./configs/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - soc-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.soc.local`)"
+      - "traefik.http.routers.grafana.entrypoints=web,websecure"
+      - "traefik.http.routers.grafana.tls=true"
+
+  # Prometheus for Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: soc-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/prometheus/rules:/etc/prometheus/rules:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # Node Exporter for System Metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: soc-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # cAdvisor for Container Metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: soc-cadvisor
+    ports:
+      - "9200:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # Alertmanager for Alert Handling
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: soc-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager_data:/alertmanager
+      - ./configs/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://alertmanager.soc.local'
+      - '--cluster.listen-address=0.0.0.0:9094'
+    networks:
+      - soc-network
+    restart: unless-stopped
+
+  # SOC Dashboard - Custom Web Interface
+  soc-dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: soc-dashboard
+    ports:
+      - "8081:3000"
+    environment:
+      - NODE_ENV=production
+      - THEHIVE_URL=http://thehive:9000
+      - CORTEX_URL=http://cortex:9001
+      - MISP_URL=http://misp:80
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - GRAFANA_URL=http://grafana:3000
+    volumes:
+      - ./configs/dashboard/config.json:/app/config.json:ro
+    networks:
+      - soc-network
+    depends_on:
+      - thehive
+      - cortex
+      - elasticsearch
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`soc-dashboard.soc.local`)"
+      - "traefik.http.routers.dashboard.entrypoints=web,websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+
+# Network Configuration
+networks:
+  soc-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volume Configuration
+volumes:
+  # Elasticsearch
+  elasticsearch_data:
+    driver: local
+  
+  # Cassandra
+  cassandra_data:
+    driver: local
+  
+  # Redis
+  redis_data:
+    driver: local
+  
+  # TheHive
+  thehive_data:
+    driver: local
+  thehive_index:
+    driver: local
+  
+  # Cortex
+  cortex_data:
+    driver: local
+  
+  # MISP
+  misp_data:
+    driver: local
+  misp_db_data:
+    driver: local
+  
+  # Shuffle
+  shuffle_data:
+    driver: local
+  shuffle_db_data:
+    driver: local
+  
+  # Traefik
+  traefik_data:
+    driver: local
+  
+  # Monitoring
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  alertmanager_data:
+    driver: local

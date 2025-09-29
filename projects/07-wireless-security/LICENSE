@@ -1,0 +1,167 @@
+MIT License
+
+Copyright (c) 2024 Cybersecurity Portfolio - WiFi Security & WPA3 Implementation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+===============================================================================
+                          SECURITY AND COMPLIANCE NOTICES
+===============================================================================
+
+IMPORTANT SECURITY DISCLAIMERS:
+
+1. EDUCATIONAL PURPOSE ONLY
+   This project is designed exclusively for educational, research, and 
+   authorized testing purposes in controlled laboratory environments. Any 
+   use in production environments requires thorough security assessment and 
+   compliance validation.
+
+2. WIRELESS SECURITY TESTING
+   All wireless security testing tools and techniques provided in this project
+   must only be used:
+   - In isolated test environments
+   - With proper authorization from network owners
+   - In compliance with local and federal laws
+   - Following responsible disclosure practices
+
+3. PENETRATION TESTING RESTRICTIONS
+   The wireless penetration testing tools included are intended for:
+   - Authorized security assessments only
+   - Testing of your own networks and systems
+   - Educational demonstration in controlled environments
+   - Compliance validation and security audits
+
+   UNAUTHORIZED USE of these tools against networks you do not own or lack
+   explicit written permission to test may violate local, state, and federal
+   laws including but not limited to the Computer Fraud and Abuse Act (CFAA)
+   and similar international legislation.
+
+4. REGULATORY COMPLIANCE
+   Users are responsible for ensuring compliance with:
+   - Local wireless communication regulations
+   - FCC regulations (United States)
+   - Industry-specific compliance requirements (PCI-DSS, HIPAA, SOX, etc.)
+   - International wireless standards (IEEE 802.11, WiFi Alliance)
+   - Data protection and privacy laws (GDPR, CCPA, etc.)
+
+5. ENTERPRISE DEPLOYMENT
+   Before deploying this solution in any production environment:
+   - Conduct thorough security assessments
+   - Validate compliance with organizational security policies
+   - Perform comprehensive testing in isolated environments
+   - Ensure all configurations meet security requirements
+   - Document all security controls and monitoring procedures
+
+SPECIFIC WIRELESS SECURITY CONSIDERATIONS:
+
+1. WPA3 IMPLEMENTATION
+   - WPA3 security features require compatible hardware and software
+   - Legacy device compatibility may require WPA3-Transition modes
+   - Regular security updates are essential for maintaining protection
+   - Certificate management requires robust PKI infrastructure
+
+2. RADIUS AND AUTHENTICATION
+   - RADIUS server security is critical for overall wireless security
+   - Certificate-based authentication requires proper key management
+   - Regular security audits of authentication infrastructure recommended
+   - Monitoring and logging of all authentication events is essential
+
+3. NETWORK SEGMENTATION
+   - VLAN segmentation must be properly configured and maintained
+   - Regular validation of network isolation is required
+   - Access control policies require periodic review and updates
+   - Guest network isolation must be thoroughly tested and monitored
+
+4. MONITORING AND DETECTION
+   - Wireless intrusion detection systems require regular tuning
+   - False positive management is critical for operational efficiency
+   - Incident response procedures must be regularly tested and updated
+   - Security event correlation requires proper SIEM integration
+
+COMPLIANCE AND STANDARDS ACKNOWLEDGMENTS:
+
+This project references and implements guidance from:
+- National Institute of Standards and Technology (NIST)
+- Payment Card Industry Data Security Standard (PCI-DSS)
+- Health Insurance Portability and Accountability Act (HIPAA)
+- International Organization for Standardization (ISO 27001)
+- Institute of Electrical and Electronics Engineers (IEEE 802.11)
+- WiFi Alliance Security Specifications
+
+Users must ensure independent compliance validation and are responsible for
+meeting all applicable regulatory and industry requirements.
+
+LIMITATION OF LIABILITY:
+
+The authors, contributors, and distributors of this software shall not be held
+liable for any damages, security breaches, compliance violations, or legal
+consequences resulting from the use, misuse, or inability to use this software.
+This includes but is not limited to:
+- Security incidents or data breaches
+- Compliance violations or regulatory penalties
+- Network downtime or service interruptions
+- Loss of data or unauthorized access
+- Legal consequences from unauthorized testing
+
+INDEMNIFICATION:
+
+By using this software, you agree to indemnify and hold harmless the authors,
+contributors, and distributors from any claims, damages, losses, or expenses
+arising from your use of the software, including but not limited to legal fees
+and court costs.
+
+EXPORT CONTROLS:
+
+This software may be subject to export controls under applicable laws and
+regulations. Users are responsible for compliance with all export control
+laws and regulations applicable to their jurisdiction.
+
+RESPONSIBLE DISCLOSURE:
+
+Security vulnerabilities in this project should be reported responsibly:
+1. Do not publicly disclose vulnerabilities before they are patched
+2. Contact the project maintainers privately through designated channels
+3. Provide detailed information about the vulnerability
+4. Allow reasonable time for fixes before any public disclosure
+
+ACKNOWLEDGMENTS:
+
+This project builds upon open-source tools and standards developed by:
+- FreeRADIUS Project (https://freeradius.org/)
+- Hostapd Project (https://w1.fi/hostapd/)
+- Kismet Wireless (https://www.kismetwireless.net/)
+- Aircrack-ng Suite (https://www.aircrack-ng.org/)
+- WiFi Alliance (https://www.wi-fi.org/)
+- IEEE Standards Association (https://standards.ieee.org/)
+
+All trademarks, service marks, and trade names referenced are the property
+of their respective owners.
+
+UPDATES AND MODIFICATIONS:
+
+This license and associated notices may be updated periodically. Users are
+responsible for reviewing the most current version of this license before
+using the software.
+
+By using this software, you acknowledge that you have read, understood, and
+agree to be bound by the terms of this license and all associated notices.
+
+===============================================================================
+                              END OF LICENSE
+===============================================================================

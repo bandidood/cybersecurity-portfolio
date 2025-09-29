@@ -1,0 +1,314 @@
+# Configuration DevSecOps Dashboard
+# Exemple de configuration complète pour le dashboard web
+
+# Clé secrète pour les sessions (CHANGER EN PRODUCTION)
+secret_key: "devsecops-dashboard-secret-key-CHANGE-IN-PRODUCTION"
+
+# Configuration de la base de données
+database_path: "./monitoring/metrics.db"
+
+# Configuration du monitoring
+monitoring:
+  database_path: "./monitoring/metrics.db"
+  collection_interval: 30  # Intervalle de collecte en secondes
+  
+  # Métriques système à collecter
+  system_metrics:
+    cpu_usage: true
+    memory_usage: true
+    disk_usage: true
+    network_usage: false
+    process_count: true
+  
+  # Export vers Prometheus (optionnel)
+  prometheus:
+    enabled: false
+    port: 9090
+    metrics_path: "/metrics"
+    labels:
+      environment: "development"
+      team: "security"
+  
+  # Export vers InfluxDB (optionnel)
+  influxdb:
+    enabled: false
+    url: "http://localhost:8086"
+    token: ""
+    org: "devsecops"
+    bucket: "security-metrics"
+
+# Configuration de l'orchestrateur
+orchestrator_config: "./config/orchestrator-config.yaml"
+
+# Configuration des alertes
+alerts:
+  enabled: true
+  
+  # Règles d'alertes
+  rules:
+    high_cpu_usage:
+      enabled: true
+      threshold: 80
+      duration: 300  # 5 minutes
+    
+    high_memory_usage:
+      enabled: true
+      threshold: 85
+      duration: 300
+    
+    critical_vulnerabilities:
+      enabled: true
+      threshold: 1  # 1 ou plus
+      duration: 0   # Immédiat
+    
+    scan_failures:
+      enabled: true
+      threshold: 3  # 3 échecs consécutifs
+      duration: 1800  # 30 minutes
+    
+    disk_space_low:
+      enabled: true
+      threshold: 90  # % d'utilisation
+      duration: 600  # 10 minutes
+  
+  # Canaux de notification
+  notification_channels:
+    # Notification par email
+    email:
+      enabled: false
+      smtp_server: "smtp.gmail.com"
+      smtp_port: 587
+      use_tls: true
+      username: ""
+      password: ""
+      from_email: "devsecops@company.com"
+      recipients:
+        - "security-team@company.com"
+        - "devops@company.com"
+    
+    # Notification Slack
+    slack:
+      enabled: false
+      webhook_url: ""
+      channel: "#security-alerts"
+      username: "DevSecOps Bot"
+      icon_emoji: ":shield:"
+      mention_users:
+        - "@security-team"
+      mention_channels:
+        - "#incident-response"
+    
+    # Notification par webhook générique
+    webhook:
+      enabled: false
+      url: "https://hooks.company.com/security"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer YOUR_API_TOKEN"
+      timeout: 30
+    
+    # Notification Microsoft Teams
+    teams:
+      enabled: false
+      webhook_url: ""
+      
+    # Notification PagerDuty
+    pagerduty:
+      enabled: false
+      integration_key: ""
+      severity: "error"
+
+# Configuration de sécurité
+security:
+  # Authentification (désactivée par défaut pour la démo)
+  require_auth: false
+  session_timeout: 3600  # 1 heure
+  
+  # Contrôle d'accès
+  allowed_hosts:
+    - "*"  # Restreindre en production: ["dashboard.company.com", "localhost"]
+  
+  # CORS
+  cors_origins:
+    - "*"  # Restreindre en production
+  
+  # Headers de sécurité
+  security_headers:
+    enabled: true
+    force_https: false  # Activer en production
+    hsts_max_age: 31536000
+    content_security_policy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net cdnjs.cloudflare.com cdn.socket.io cdn.plot.ly"
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: false
+    requests_per_minute: 100
+    requests_per_hour: 1000
+
+# Fonctionnalités du dashboard
+features:
+  # Mises à jour en temps réel via WebSocket
+  real_time_updates: true
+  
+  # Historique des scans
+  scan_history_days: 30
+  
+  # Scans concurrents
+  max_concurrent_scans: 5
+  
+  # Auto-nettoyage des rapports anciens
+  auto_cleanup_reports: true
+  cleanup_after_days: 7
+  
+  # Export des données
+  data_export:
+    enabled: true
+    formats: ["json", "csv", "pdf"]
+    max_export_size: 10000  # Nombre max de records
+  
+  # Graphiques interactifs
+  charts:
+    enabled: true
+    default_time_range: "24h"
+    auto_refresh: true
+    refresh_interval: 30  # secondes
+  
+  # Notifications dans le dashboard
+  ui_notifications:
+    enabled: true
+    show_success: true
+    show_warnings: true
+    show_errors: true
+    auto_dismiss: true
+    dismiss_after: 5000  # millisecondes
+
+# Configuration du serveur web
+server:
+  host: "0.0.0.0"
+  port: 8080
+  debug: false
+  threaded: true
+  
+  # SSL/TLS (pour la production)
+  ssl:
+    enabled: false
+    cert_file: ""
+    key_file: ""
+  
+  # Configuration WebSocket
+  websocket:
+    enabled: true
+    cors_allowed_origins: "*"
+    ping_timeout: 60
+    ping_interval: 25
+
+# Configuration des logs
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Fichiers de log
+  files:
+    main_log: "./logs/dashboard.log"
+    access_log: "./logs/access.log"
+    error_log: "./logs/error.log"
+  
+  # Rotation des logs
+  rotation:
+    enabled: true
+    max_size: "10MB"
+    backup_count: 5
+  
+  # Logs par composant
+  loggers:
+    web_dashboard: "INFO"
+    metrics_collector: "INFO"
+    security_orchestrator: "INFO"
+    flask: "WARNING"
+    socketio: "WARNING"
+
+# Intégrations externes
+integrations:
+  # Jira pour la création de tickets
+  jira:
+    enabled: false
+    url: "https://company.atlassian.net"
+    username: ""
+    api_token: ""
+    project_key: "SEC"
+    issue_type: "Bug"
+  
+  # GitHub pour les issues
+  github:
+    enabled: false
+    token: ""
+    owner: "company"
+    repo: "security-issues"
+  
+  # ServiceNow
+  servicenow:
+    enabled: false
+    instance_url: ""
+    username: ""
+    password: ""
+    table: "incident"
+
+# Configuration de la base de données (si autre que SQLite)
+database:
+  type: "sqlite"  # sqlite, postgresql, mysql
+  
+  # Configuration PostgreSQL (optionnel)
+  postgresql:
+    host: "localhost"
+    port: 5432
+    database: "devsecops"
+    username: ""
+    password: ""
+    pool_size: 10
+  
+  # Configuration MySQL (optionnel)
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "devsecops"
+    username: ""
+    password: ""
+    charset: "utf8mb4"
+
+# Configuration des rapports
+reports:
+  # Répertoire des rapports
+  directory: "./security-reports"
+  
+  # Formats de rapport supportés
+  formats:
+    json: true
+    sarif: true
+    html: true
+    pdf: false
+    xml: true
+  
+  # Template pour les rapports
+  templates:
+    html_template: "./templates/report.html"
+    pdf_template: "./templates/report_pdf.html"
+  
+  # Archivage
+  archiving:
+    enabled: true
+    archive_after_days: 30
+    archive_format: "zip"
+    archive_directory: "./archives"
+
+# Configuration des plugins (extension future)
+plugins:
+  enabled: false
+  directory: "./plugins"
+  auto_load: []
+
+# Variables d'environnement par défaut
+environment:
+  FLASK_ENV: "development"
+  FLASK_DEBUG: "false"
+  PYTHONPATH: "./dashboard:./pipeline-orchestrator:./monitoring"

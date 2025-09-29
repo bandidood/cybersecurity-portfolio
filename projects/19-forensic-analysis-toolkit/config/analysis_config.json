@@ -1,0 +1,38 @@
+{
+  "case_info": {
+    "case_id": "DEMO_CASE_2024",
+    "case_name": "Démonstration Forensic Toolkit",
+    "investigator": "Agent Forensique",
+    "organization": "Cybersecurity Portfolio",
+    "incident_type": "Malware Investigation",
+    "description": "Analyse forensique de démonstration complète"
+  },
+  "analysis_targets": {
+    "disk_path": "./samples/disk_image.dd",
+    "memory_path": "./samples/memory_dump.mem",
+    "network_path": "./samples/capture.pcap",
+    "mobile_path": "./samples/ios_backup/",
+    "mobile_type": "ios",
+    "crypto_path": "./samples/encrypted_files/"
+  },
+  "analysis_options": {
+    "run_timeline": true,
+    "run_ai": true,
+    "generate_reports": true,
+    "enable_deep_scan": false,
+    "parallel_processing": true
+  },
+  "output_settings": {
+    "generate_executive_report": true,
+    "generate_technical_report": true,
+    "export_json": true,
+    "create_timeline_chart": true,
+    "include_screenshots": false
+  },
+  "advanced_settings": {
+    "max_memory_usage": "4GB",
+    "thread_count": 4,
+    "timeout_minutes": 60,
+    "log_level": "INFO"
+  }
+}
