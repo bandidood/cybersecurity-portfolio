@@ -1,7 +1,7 @@
 # 🔐 Portfolio Cybersécurité Professionnel
 
 ## 👨‍💻 À Propos
-Portfolio technique démontrant mes compétences en cybersécurité à travers 50 mini-projets pratiques couvrant tous les domaines de la sécurité informatique.
+Portfolio technique démontrant mes compétences en cybersécurité à travers 25 projets pratiques couvrant tous les domaines de la sécurité informatique.
 
 ## 🏆 Domaines d'Expertise
 - **Sécurité Réseau** : Pare-feu, IDS/IPS, VPN, Architecture sécurisée
