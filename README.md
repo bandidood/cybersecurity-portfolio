@@ -166,11 +166,7 @@ Chaque projet contient :
 - **Evidence** (captures, logs anonymisés)
 - **Tests** de validation
 
-## 📞 Contact
-- **GitHub** : [Votre GitHub]
-- **LinkedIn** : [Votre LinkedIn]
-- **Email** : [email@domain.com]
-- **Blog** : [Votre blog technique]
+
 
 ---
 
