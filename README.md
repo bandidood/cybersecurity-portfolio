@@ -29,7 +29,7 @@ Portfolio technique démontrant mes compétences en cybersécurité à travers 2
 |---|--------|-------------|--------------|--------|
 | 08 | [Gestion Identités IAM](./projects/08-identity-access-management/) | IAM Enterprise avec SSO | Keycloak, LDAP, MFA | ✅ Terminé |
 | 09 | [Cloud Security Governance](./projects/09-cloud-security-governance/) | Gouvernance sécurité cloud | AWS, Azure, CSPM | ✅ Terminé |
-| 10 | [Threat Intelligence](./projects/10-threat-intelligence-platform/) | Plateforme renseignement | MISP, OpenCTI, ML | ✅ Terminé |
+| 10 | [Threat Intelligence](./projects/10-threat-intelligence-platform/) | Plateforme renseignement | Python, FastAPI, MITRE ATT&CK | 🔥 **80% - Récent** |
 
 ### 🔴 Red Team & Pentest (6 projets)
 | # | Projet | Description | Technologies | Status |
@@ -64,15 +64,16 @@ Portfolio technique démontrant mes compétences en cybersécurité à travers 2
 
 
 ## 📊 Métriques du Portfolio
-- **Projets production-ready** : 7/25 (Projets 19, 20, 21, 24, 25 + Récents: 02, 04)
-- **Projets substantiels** : 12/25 (Code fonctionnel, documentation complète)
-- **Projets en infrastructure** : 8/25 (Templates, configurations de base)
+- **Projets production-ready** : 8/25 (Projets 19, 20, 21, 24, 25 + Récents: 02, 04, 10)
+- **Projets substantiels** : 13/25 (Code fonctionnel, documentation complète)
+- **Projets en infrastructure** : 7/25 (Templates, configurations de base)
 - **Technologies maîtrisées** : 60+ (Python, TypeScript, Docker, K8s, ML/AI, etc.)
-- **Lignes de code** : ~90,000+ Python/TypeScript
+- **Lignes de code** : ~94,000+ Python/TypeScript
 - **Domaines couverts** : Réseau, Red Team, Forensique, Cloud, IA, Blockchain, DevSecOps
 - **Certifications visées** : OSCP, CISSP, CEH, GIAC
 
 ### 🆕 Mises à jour Récentes (2025-01)
+- ✅ **Projet 10** : Plateforme threat intelligence complète (~4,200 LOC Python)
 - ✅ **Projet 02** : Framework complet de gestion firewall (~3,500 LOC Python)
 - ✅ **Projet 21** : Frontend React/TypeScript finalisé (~2,500 LOC)
 - ✅ **Nettoyage** : Structure optimisée, duplicatas supprimés
