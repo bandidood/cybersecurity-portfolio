@@ -1,0 +1,28 @@
+# Threat Intelligence Platform - Python Dependencies
+
+# Core Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# HTTP Client
+requests>=2.31.0
+aiohttp>=3.9.0
+
+# Data Processing
+python-dateutil>=2.8.2
+
+# Security
+cryptography>=41.0.0
+
+# Development & Testing (optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.0
+
+# Documentation (optional)
+mkdocs>=1.5.0
+mkdocs-material>=9.4.0
