@@ -28,7 +28,7 @@ Portfolio technique démontrant mes compétences en cybersécurité à travers 2
 | # | Projet | Description | Technologies | Status |
 |---|--------|-------------|--------------|--------|
 | 08 | [Gestion Identités IAM](./projects/08-identity-access-management/) | IAM Enterprise avec SSO | Keycloak, LDAP, MFA | ✅ Terminé |
-| 09 | [Cloud Security Governance](./projects/09-cloud-security-governance/) | Gouvernance sécurité cloud | AWS, Azure, CSPM | ✅ Terminé |
+| 09 | [Cloud Security Governance](./projects/09-cloud-security-governance/) | Gouvernance sécurité cloud | Python, CIS, NIST, AWS | 🔥 **70% - Récent** |
 | 10 | [Threat Intelligence](./projects/10-threat-intelligence-platform/) | Plateforme renseignement | Python, FastAPI, MITRE ATT&CK | 🔥 **80% - Récent** |
 
 ### 🔴 Red Team & Pentest (6 projets)
@@ -64,20 +64,21 @@ Portfolio technique démontrant mes compétences en cybersécurité à travers 2
 
 
 ## 📊 Métriques du Portfolio
-- **Projets production-ready** : 9/25 (Projets 19, 20, 21, 24, 25 + Récents: 02, 04, 10, 11)
-- **Projets substantiels** : 14/25 (Code fonctionnel, documentation complète)
-- **Projets en infrastructure** : 6/25 (Templates, configurations de base)
-- **Technologies maîtrisées** : 65+ (Python, TypeScript, Docker, K8s, ML/AI, YARA, etc.)
-- **Lignes de code** : ~97,500+ Python/TypeScript
-- **Domaines couverts** : Réseau, Red Team, Forensique, Cloud, IA, Blockchain, DevSecOps
-- **Certifications visées** : OSCP, CISSP, CEH, GIAC
+- **Projets production-ready** : 10/25 (Projets 19, 20, 21, 24, 25 + Récents: 02, 04, 09, 10, 11)
+- **Projets substantiels** : 15/25 (Code fonctionnel, documentation complète)
+- **Projets en infrastructure** : 5/25 (Templates, configurations de base)
+- **Technologies maîtrisées** : 70+ (Python, TypeScript, Docker, K8s, ML/AI, YARA, CIS, NIST, etc.)
+- **Lignes de code** : ~100,300+ Python/TypeScript
+- **Domaines couverts** : Réseau, Red Team, Forensique, Cloud, IA, Blockchain, DevSecOps, Compliance
+- **Certifications visées** : OSCP, CISSP, CEH, GIAC, CCSP
 
-### 🆕 Mises à jour Récentes (2025-01)
+### 🆕 Mises à jour Récentes (2025-01-18)
+- ✅ **Projet 09** : Cloud Security Governance (~2,800 LOC Python)
 - ✅ **Projet 11** : Sandbox analyse malware statique (~3,500 LOC Python)
 - ✅ **Projet 10** : Plateforme threat intelligence complète (~4,200 LOC Python)
 - ✅ **Projet 02** : Framework complet de gestion firewall (~3,500 LOC Python)
 - ✅ **Projet 21** : Frontend React/TypeScript finalisé (~2,500 LOC)
-- ✅ **Nettoyage** : Structure optimisée, duplicatas supprimés
+- ✅ **Total session** : +13,500 LOC en une seule journée (3 projets majeurs)
 
 ## ⭐ Projets Phares (Production-Ready)
 
