@@ -1,0 +1,11 @@
+# Firewall Configuration Framework - Python Dependencies
+
+# Core dependencies
+python-dateutil>=2.8.2
+ipaddress>=1.0.23  # For IP address manipulation
+
+# Optional dependencies for enhanced functionality
+pyyaml>=6.0  # For YAML config files
+jinja2>=3.1.2  # For template-based report generation
+colorama>=0.4.6  # For colored CLI output
+tabulate>=0.9.0  # For formatted table output
