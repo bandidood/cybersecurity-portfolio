@@ -2,371 +2,307 @@
 
 ## Project Overview
 
-A comprehensive cloud security and governance framework designed to implement security best practices, compliance automation, and governance models across multi-cloud environments. This project demonstrates advanced cloud security posture management (CSPM), policy-as-code implementation, and security orchestration capabilities.
+A functional cloud security governance framework for automated compliance scanning and security assessment. This tool scans cloud infrastructure against industry frameworks (CIS, NIST, ISO27001, SOC2), identifies security misconfigurations, and generates actionable remediation plans.
 
-## 🎯 Objectives
+**Status**: 70% Complete | **Type**: Governance Tool | **Language**: Python | **LOC**: ~2,800
 
-- **Multi-Cloud Security**: Implement consistent security controls across AWS, Azure, and GCP
-- **Governance Framework**: Establish robust governance models with automated policy enforcement
-- **Compliance Automation**: Automate compliance checking for major frameworks (SOC 2, ISO 27001, NIST, CIS)
-- **Security Orchestration**: Integrate security tools and automate incident response workflows
-- **Risk Management**: Implement continuous risk assessment and mitigation strategies
-- **DevSecOps Integration**: Embed security into CI/CD pipelines and infrastructure-as-code
+## 🎯 Objectives Achieved
 
-## 🏗️ Architecture Components
+- ✅ **Multi-Cloud Framework**: Extensible architecture for AWS/Azure/GCP
+- ✅ **Compliance Scanning**: Automated checks against CIS, NIST standards
+- ✅ **AWS Scanner**: S3, EC2, Security Groups, IAM checks
+- ✅ **Policy Engine**: Rule-based compliance evaluation
+- ✅ **Compliance Scoring**: Weighted scoring algorithm (0-100 scale)
+- ✅ **Remediation Plans**: Automated guidance and scripts
+- ✅ **CLI Tool**: Command-line interface for security operations
+- ✅ **Reporting**: JSON and text format reports
 
-### 1. Cloud Security Frameworks
-
-#### **NIST Cybersecurity Framework**
-- Identify: Asset inventory and risk assessment
-- Protect: Access controls and data protection
-- Detect: Security monitoring and threat detection
-- Respond: Incident response and recovery planning
-- Recover: Business continuity and disaster recovery
-
-#### **CIS Controls**
-- Critical Security Controls implementation
-- Automated configuration assessment
-- Continuous monitoring and reporting
-
-#### **Cloud Security Alliance (CSA)**
-- Cloud Controls Matrix (CCM)
-- Security Trust Assurance Registry (STAR)
-- Certificate of Cloud Security Knowledge (CCSK)
-
-### 2. Multi-Cloud Security Architecture
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                 Governance Layer                    │
-├─────────────────────────────────────────────────────┤
-│  Policy Engine │ Compliance │ Risk Management      │
-├─────────────────────────────────────────────────────┤
-│                Security Orchestration              │
-├─────────────────────────────────────────────────────┤
-│   AWS Security  │ Azure Security │  GCP Security   │
-│   ──────────────│──────────────── │ ─────────────── │
-│   • IAM/GuardDuty│ • AAD/Sentinel │ • Cloud IAM    │
-│   • Config      │ • Security Ctr │ • Security Cmd │
-│   • CloudTrail  │ • Policy       │ • Cloud Audit  │
-│   • WAF         │ • Key Vault    │ • Cloud KMS    │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│              Governance Layer                    │
+│   CLI Tool  │  Policy Engine  │  Reports         │
+├──────────────────────────────────────────────────┤
+│           Cloud Scanners                         │
+│   AWS Scanner  │  Azure*  │  GCP*                │
+├──────────────────────────────────────────────────┤
+│         Compliance Frameworks                    │
+│   CIS  │  NIST  │  ISO27001  │  SOC2             │
+└──────────────────────────────────────────────────┘
+
+* Future enhancement
 ```
 
-### 3. Core Security Services
+## 📊 Features Implemented
 
-#### **Identity & Access Management (IAM)**
-- Multi-cloud identity federation
-- Zero-trust architecture implementation
-- Privileged access management (PAM)
-- Just-in-time (JIT) access controls
+### AWS Security Scanner
+- **S3 Buckets**: Encryption, public access, versioning, logging
+- **EC2 Instances**: Monitoring, EBS encryption, IMDSv2
+- **Security Groups**: SSH access, database ports, overly permissive rules
+- **IAM**: MFA enforcement, key rotation, password policies
 
-#### **Data Protection**
-- Encryption at rest and in transit
-- Key management and rotation
-- Data loss prevention (DLP)
-- Data classification and governance
+### Policy Engine
+- **CIS AWS Foundation Benchmark** controls
+- **NIST Cybersecurity Framework** mapping
+- **ISO 27001** requirements
+- **SOC 2** compliance checks
+- Rule-based evaluation
+- Automated remediation generation
+- Priority and effort estimation
 
-#### **Network Security**
-- Virtual private cloud (VPC) security
-- Network segmentation and micro-segmentation
-- Web application firewall (WAF)
-- DDoS protection and mitigation
+### Compliance Reporting
+- Compliance score calculation
+- Findings by severity and status
+- Top risks identification
+- Evidence collection
+- Audit trail support
+- JSON/text export
 
-#### **Security Monitoring & Analytics**
-- Security information and event management (SIEM)
-- Security orchestration, automation, and response (SOAR)
-- User and entity behavior analytics (UEBA)
-- Threat intelligence integration
-
-## 🛠️ Tools & Technologies
-
-### Cloud Security Platforms
-- **AWS**: GuardDuty, Security Hub, Config, CloudTrail
-- **Azure**: Security Center, Sentinel, Policy, Key Vault
-- **GCP**: Security Command Center, Cloud Audit Logs, Cloud KMS
-
-### CSPM Tools
-- **Prisma Cloud**: Comprehensive cloud security platform
-- **CloudGuard**: Check Point's cloud security solution
-- **Dome9**: Cloud security posture management
-- **Scout Suite**: Multi-cloud security auditing tool
-
-### Policy & Compliance
-- **Open Policy Agent (OPA)**: Policy-as-code engine
-- **Falco**: Cloud-native runtime security
-- **Gatekeeper**: Kubernetes admission controller
-- **Terraform Sentinel**: Policy-as-code for infrastructure
-
-### Security Orchestration
-- **Phantom/SOAR**: Security orchestration platform
-- **Demisto**: Security orchestration and automation
-- **StackStorm**: Event-driven automation
-- **Ansible**: Configuration and security automation
-
-### Monitoring & Analytics
-- **Splunk**: Enterprise security platform
-- **Elasticsearch/ELK**: Log analysis and SIEM
-- **Grafana**: Monitoring and visualization
-- **Prometheus**: Metrics collection and alerting
+### CLI Tool
+```bash
+scan            # Run compliance scan
+report          # Generate formatted report
+rules           # List policy rules
+remediate       # Create remediation plan
+export          # Export policies/findings
+```
 
 ## 🚀 Quick Start
 
-### Prerequisites
-```bash
-# Required tools
-- Docker & Docker Compose
-- Terraform >= 1.0
-- kubectl >= 1.20
-- AWS CLI / Azure CLI / gcloud CLI
-- Helm >= 3.0
-- Python 3.8+
-```
+### Installation
 
-### Environment Setup
 ```bash
-# Clone and setup
-git clone <repository-url>
-cd 09-cloud-security-governance
+# Navigate to project directory
+cd projects/09-cloud-security-governance
 
 # Install dependencies
-make install
-
-# Configure cloud credentials
-make configure-credentials
-
-# Deploy lab environment
-make deploy-lab
+pip install -r requirements.txt
 ```
 
-### Lab Components
+### Run Demo
+
 ```bash
-# Deploy CSPM tools
-make deploy-cspm
-
-# Setup compliance monitoring
-make deploy-compliance
-
-# Configure security policies
-make configure-policies
-
-# Launch dashboards
-make start-dashboards
+# Run comprehensive demonstration
+python examples/demo.py
 ```
 
-## 📋 Implementation Guide
+### Run Compliance Scan
 
-### Phase 1: Foundation Setup
-1. **Cloud Account Preparation**
-   - Multi-cloud account setup and organization
-   - Root account security hardening
-   - Billing and cost management configuration
+```bash
+# Scan AWS environment
+python src/cli.py scan --provider aws --framework cis --output scan.json
 
-2. **Identity Foundation**
-   - Identity provider integration
-   - Multi-factor authentication setup
-   - Role-based access control (RBAC)
+# Generate report
+python src/cli.py report scan.json --format text
 
-### Phase 2: Security Controls Implementation
-1. **Preventive Controls**
-   - Policy-as-code implementation
-   - Network security configuration
-   - Encryption and key management
-
-2. **Detective Controls**
-   - Logging and monitoring setup
-   - Security event correlation
-   - Threat detection configuration
-
-### Phase 3: Governance & Compliance
-1. **Policy Management**
-   - Governance framework establishment
-   - Automated policy enforcement
-   - Exception management processes
-
-2. **Compliance Automation**
-   - Framework mapping and assessment
-   - Continuous compliance monitoring
-   - Audit trail and reporting
-
-## 🔧 Configuration Examples
-
-### Terraform Security Policy
-```hcl path=null start=null
-# AWS Security Group with restrictive rules
-resource "aws_security_group" "secure_web" {
-  name_description = "Secure web server security group"
-  
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  
-  tags = {
-    Environment = "production"
-    Security    = "high"
-  }
-}
+# Create remediation plan
+python src/cli.py remediate scan.json --severity critical
 ```
 
-### Kubernetes Network Policy
-```yaml path=null start=null
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: deny-all-ingress
-  namespace: production
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress: []
-  egress:
-  - to: []
-    ports:
-    - protocol: TCP
-      port: 53
-    - protocol: UDP
-      port: 53
+## 📖 Usage Examples
+
+### CLI Usage
+
+```bash
+# Full compliance scan with CIS framework
+python src/cli.py scan --provider aws --framework cis \\
+    --account-id 123456789012 --region us-east-1 --output scan.json
+
+# Generate formatted report
+python src/cli.py report scan.json --format text --output report.txt
+
+# List all CIS rules
+python src/cli.py rules --framework cis
+
+# List critical severity rules only
+python src/cli.py rules --severity critical
+
+# Generate remediation plan for critical findings
+python src/cli.py remediate scan.json --severity critical --output remediate.json
+
+# Export all policies
+python src/cli.py export --type policies --output policies.json
 ```
 
-### OPA Policy Example
-```rego path=null start=null
-package kubernetes.admission
+### Python API
 
-deny[msg] {
-  input.request.kind.kind == "Pod"
-  input.request.object.spec.containers[_].securityContext.privileged == true
-  msg := "Privileged containers are not allowed"
-}
+```python
+from src.scanners.aws_scanner import AWSSecurityScanner
+from src.policies.policy_engine import PolicyEngine
+from src.models import ComplianceReport, CloudProvider, ComplianceFramework
 
-deny[msg] {
-  input.request.kind.kind == "Pod"
-  not input.request.object.spec.containers[_].resources.limits.memory
-  msg := "Memory limits are required for all containers"
-}
+# Initialize AWS scanner
+scanner = AWSSecurityScanner(
+    account_id="123456789012",
+    region="us-east-1"
+)
+
+# Run full security scan
+findings = scanner.run_full_scan()
+print(f"Found {len(findings)} security issues")
+
+# Create compliance report
+report = ComplianceReport(
+    report_id="scan_001",
+    provider=CloudProvider.AWS,
+    framework=ComplianceFramework.CIS,
+    account_id="123456789012",
+    findings=findings,
+    total_resources=20
+)
+
+# Calculate compliance metrics
+report.calculate_metrics()
+print(f"Compliance Score: {report.compliance_score:.1f}%")
+
+# Save report
+report.save("compliance_report.json")
+
+# Generate remediation plans
+engine = PolicyEngine()
+for finding in findings[:3]:  # Top 3 findings
+    plan = engine.generate_remediation_plan(finding)
+    print(f"\nRemediation for: {finding.title}")
+    print(f"Priority: {plan['priority']}")
+    print(f"Steps: {plan['steps']}")
 ```
 
-## 🔍 Security Assessments
+## 🛠️ Technologies Used
 
-### Automated Security Scanning
-- **Infrastructure Scanning**: Terraform/CloudFormation template analysis
-- **Container Scanning**: Image vulnerability assessment
-- **Configuration Assessment**: Cloud resource security evaluation
-- **Policy Validation**: Governance rule compliance checking
+### Core Framework
+- **Python 3.9+**: Modern Python with type hints
+- **Dataclasses**: Clean data modeling
+- **Enums**: Type-safe enumerations
 
 ### Compliance Frameworks
+- **CIS Benchmarks**: AWS Foundation Benchmark v1.5
+- **NIST CSF**: Cybersecurity Framework controls
+- **ISO 27001**: Information security standards
+- **SOC 2**: Service organization controls
 
-#### **SOC 2 Type II**
-- Security, availability, confidentiality controls
-- Automated evidence collection
-- Continuous monitoring dashboard
+## 📚 Project Structure
 
-#### **ISO 27001**
-- Information security management system
-- Risk assessment automation
-- Audit preparation and reporting
+```
+09-cloud-security-governance/
+├── src/
+│   ├── models.py                    # Data models (350 LOC)
+│   ├── scanners/
+│   │   └── aws_scanner.py           # AWS scanner (600 LOC)
+│   ├── policies/
+│   │   └── policy_engine.py         # Policy engine (300 LOC)
+│   └── cli.py                        # CLI interface (450 LOC)
+├── examples/
+│   └── demo.py                      # Demo script (300 LOC)
+├── README.md                         # This file
+├── PROJECT_STATUS.md                 # Detailed status
+└── requirements.txt                  # Dependencies
 
-#### **PCI DSS**
-- Payment card data protection
-- Cardholder data environment monitoring
-- Compliance validation automation
+Total: ~2,800 lines of Python code
+```
 
-#### **HIPAA**
-- Healthcare data protection
-- Audit logging and monitoring
-- Breach notification automation
+## 🎓 Learning Outcomes
 
-## 📊 Monitoring & Dashboards
+### Cloud Security Concepts
+- CIS Benchmarks and best practices
+- NIST Cybersecurity Framework
+- AWS security services concepts
+- Compliance automation strategies
+- Risk assessment methodologies
 
-### Security Posture Dashboard
-- Risk score and trend analysis
-- Compliance status by framework
-- Policy violation alerts
-- Threat intelligence feeds
+### Technical Skills
+- Multi-cloud scanner architecture
+- Policy-as-code implementation
+- Compliance scoring algorithms
+- CLI tool development
+- Security automation patterns
 
-### Governance Metrics
-- Policy enforcement rates
-- Exception approval workflows
-- Access review completion
-- Security training compliance
+### Governance Practices
+- Compliance reporting and metrics
+- Remediation planning
+- Audit trail management
+- Risk prioritization
+- Security automation workflows
 
-### Operational Metrics
-- Incident response times
-- Mean time to remediation (MTTR)
-- Security tool effectiveness
-- Cost optimization opportunities
+## 🔍 Security Checks Implemented
 
-## 🎓 Learning Resources
+### S3 Buckets (CIS 2.1.x)
+- ✅ Default encryption enabled
+- ✅ Block public access
+- ✅ Versioning enabled
+- ✅ Access logging configured
 
-### Certifications
-- **AWS Certified Security - Specialty**
-- **Azure Security Engineer Associate**
-- **Google Cloud Professional Cloud Security Engineer**
-- **Certified Cloud Security Professional (CCSP)**
+### EC2 Instances (CIS 4.x, 2.2.x)
+- ✅ Detailed monitoring enabled
+- ✅ EBS volumes encrypted
+- ✅ IMDSv2 enforced
 
-### Training Materials
-- Cloud security best practices guides
-- Hands-on lab exercises
-- Policy-as-code tutorials
-- Compliance framework deep-dives
+### Security Groups (CIS 5.x)
+- ✅ No unrestricted SSH (port 22)
+- ✅ No unrestricted database ports
 
-## 🤝 Contributing
+### IAM (CIS 1.x)
+- ✅ MFA enabled for users
+- ✅ Access keys rotated (90 days)
+- ✅ Passwords rotated (90 days)
 
-### Development Workflow
-1. Fork the repository
-2. Create feature branch
-3. Implement security controls
-4. Add comprehensive tests
-5. Update documentation
-6. Submit pull request
+## 📊 Compliance Scoring
 
-### Security Guidelines
-- Follow secure coding practices
-- Implement least privilege principles
-- Use infrastructure-as-code
-- Automate security testing
-- Document security decisions
+The compliance score is calculated using a weighted algorithm:
+
+- **Critical findings**: -10 points each
+- **High findings**: -5 points each
+- **Medium findings**: -2 points each
+- **Low findings**: -1 point each
+
+**Base score**: 100 (perfect compliance)
+**Final score**: Base - Total weighted findings
 
 ## 📝 Documentation
 
-- [Security Architecture](docs/security-architecture.md)
-- [Compliance Framework Implementation](docs/compliance-implementation.md)
-- [Incident Response Playbooks](docs/incident-response.md)
-- [API Security Guidelines](docs/api-security.md)
-- [Container Security Best Practices](docs/container-security.md)
+- **[PROJECT_STATUS.md](PROJECT_STATUS.md)**: Detailed project status
+- **[examples/demo.py](examples/demo.py)**: Complete demonstration
 
-## 🚨 Support & Incident Response
+## 🚧 Known Limitations
 
-### Security Incident Contacts
-- **Primary**: security-team@organization.com
-- **Escalation**: ciso@organization.com
-- **Emergency**: +1-555-SECURITY
+- **Simulated Scanning**: Uses simulated data for demonstration
+- **AWS Only**: Only AWS scanner currently implemented
+- **Limited Rules**: Subset of CIS/NIST controls implemented
 
-### Reporting Vulnerabilities
-- Use encrypted communication for sensitive reports
-- Include detailed reproduction steps
-- Provide impact assessment
-- Follow responsible disclosure practices
+## 🔄 Future Enhancements
 
----
+### Short Term
+- Unit tests with pytest
+- Azure and GCP scanners
+- More CIS controls
+- Real cloud API integration (boto3)
 
-**Note**: This is a demonstration project for educational and portfolio purposes. Always follow your organization's security policies and compliance requirements when implementing cloud security controls in production environments.
+### Medium Term
+- Web dashboard
+- Scheduled scanning
+- Trend analysis
+
+### Long Term
+- Machine learning anomaly detection
+- Automated remediation execution
+- Multi-account support
+
+## 🎯 Use Cases
+
+1. **Compliance Audits**: Automated compliance assessment
+2. **Security Operations**: Continuous security posture monitoring
+3. **DevSecOps**: Security gates in CI/CD pipelines
+4. **Risk Management**: Identify and prioritize security risks
+5. **Governance**: Policy enforcement and tracking
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-*🔐 Securing the cloud, one policy at a time.*
+**Note**: This tool is designed for security assessment and education. Always follow your organization's security policies when scanning cloud environments.
+
+---
+
+*Built as part of a cybersecurity portfolio to demonstrate cloud security and governance automation skills.*

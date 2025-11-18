@@ -1,0 +1,23 @@
+# Cloud Security Governance - Python Dependencies
+
+# Cloud Provider SDKs (optional, for real cloud scanning)
+# Uncomment if connecting to real cloud accounts
+# boto3>=1.29.0  # AWS SDK
+# azure-identity>=1.14.0  # Azure authentication
+# azure-mgmt-compute>=30.0.0  # Azure Compute
+# azure-mgmt-storage>=21.0.0  # Azure Storage
+# google-cloud-compute>=1.14.0  # GCP Compute
+# google-cloud-storage>=2.10.0  # GCP Storage
+
+# Core dependencies
+requests>=2.31.0
+
+# Policy as Code (optional)
+# opa-python>=0.1.0  # Open Policy Agent
+
+# Development & Testing (optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.0
