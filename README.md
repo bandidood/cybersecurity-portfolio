@@ -44,7 +44,7 @@ Portfolio technique démontrant mes compétences en cybersécurité à travers 2
 ### 🔬 Analyse & Forensique (4 projets)
 | # | Projet | Description | Technologies | Status |
 |---|--------|-------------|--------------|--------|
-| 11 | [Malware Analysis](./projects/11-malware-analysis-sandbox/) | Sandbox d'analyse malware | Cuckoo, YARA, Ghidra | ✅ Terminé |
+| 11 | [Malware Analysis](./projects/11-malware-analysis-sandbox/) | Sandbox d'analyse malware | Python, YARA, pefile | 🔥 **75% - Récent** |
 | 14 | [Digital Forensics](./projects/14-digital-forensics-incident-response/) | Forensique numérique | Volatility, Sleuth Kit | ✅ Terminé |
 | 19 | [Forensic Analysis Toolkit](./projects/19-forensic-analysis-toolkit/) | Analyse forensique IA | Python, ML, MITRE | ✅ Terminé |
 | 22 | [Blockchain Forensics](./projects/22-blockchain-security-forensics/) | Forensique blockchain | Web3, Graph Analysis, NX | ✅ Terminé |
@@ -64,15 +64,16 @@ Portfolio technique démontrant mes compétences en cybersécurité à travers 2
 
 
 ## 📊 Métriques du Portfolio
-- **Projets production-ready** : 8/25 (Projets 19, 20, 21, 24, 25 + Récents: 02, 04, 10)
-- **Projets substantiels** : 13/25 (Code fonctionnel, documentation complète)
-- **Projets en infrastructure** : 7/25 (Templates, configurations de base)
-- **Technologies maîtrisées** : 60+ (Python, TypeScript, Docker, K8s, ML/AI, etc.)
-- **Lignes de code** : ~94,000+ Python/TypeScript
+- **Projets production-ready** : 9/25 (Projets 19, 20, 21, 24, 25 + Récents: 02, 04, 10, 11)
+- **Projets substantiels** : 14/25 (Code fonctionnel, documentation complète)
+- **Projets en infrastructure** : 6/25 (Templates, configurations de base)
+- **Technologies maîtrisées** : 65+ (Python, TypeScript, Docker, K8s, ML/AI, YARA, etc.)
+- **Lignes de code** : ~97,500+ Python/TypeScript
 - **Domaines couverts** : Réseau, Red Team, Forensique, Cloud, IA, Blockchain, DevSecOps
 - **Certifications visées** : OSCP, CISSP, CEH, GIAC
 
 ### 🆕 Mises à jour Récentes (2025-01)
+- ✅ **Projet 11** : Sandbox analyse malware statique (~3,500 LOC Python)
 - ✅ **Projet 10** : Plateforme threat intelligence complète (~4,200 LOC Python)
 - ✅ **Projet 02** : Framework complet de gestion firewall (~3,500 LOC Python)
 - ✅ **Projet 21** : Frontend React/TypeScript finalisé (~2,500 LOC)
