@@ -46,6 +46,41 @@ Développement d'une plateforme complète de bug bounty intégrant des outils de
 - **Sécurité**: JWT, RBAC, chiffrement des données
 - **Infrastructure**: Docker, CI/CD, monitoring
 
+## 📦 Installation
+
+### Prérequis
+```bash
+# Backend
+Python 3.11+
+pip install -r requirements.txt
+
+# Frontend
+Node.js 18+
+cd web && npm install
+```
+
+### Configuration
+```bash
+# Lancer le backend
+python demo.py
+
+# Lancer le frontend (dans un autre terminal)
+cd web
+npm run dev
+```
+
+## 🧪 Tests
+
+```bash
+# Lancer tous les tests
+cd tests
+python run_tests.py
+
+# Tests spécifiques
+python test_report_generator.py
+python test_bounty_program.py
+```
+
 ## 🚀 Fonctionnalités Principales
 
 ### Pour les Organisations
